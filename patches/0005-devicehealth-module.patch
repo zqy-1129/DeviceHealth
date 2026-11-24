@@ -1721,10 +1721,10 @@ index 0000000..80c2ddc
 +}
 diff --git dh-b/packages/modules/DeviceHealth/README.md dh-b/packages/modules/DeviceHealth/README.md
 new file mode 100644
-index 0000000..0cca2c7
+index 0000000..c20a1d2
 --- /dev/null
 +++ dh-b/packages/modules/DeviceHealth/README.md
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,131 @@
 +# Device Health Center
 +
 +Device Health Center is an end-to-end AOSP sample that connects a vendor AIDL HAL to an
@@ -1755,8 +1755,12 @@ index 0000000..0cca2c7
 +```bash
 +source build/envsetup.sh
 +lunch aosp_cf_x86_64_phone-trunk_staging-userdebug
-+m superimage systemimage productimage system_extimage vendorimage bootimage
++m superimage systemimage productimage systemextimage vendorimage bootimage \
++    vbmetaimage vbmetasystemimage
 +```
++
++When `system.img` is rebuilt incrementally, rebuild `vbmeta` and `vbmeta_system` as
++well; otherwise the guest fails AVB verification and reboots during first-stage init.
 +
 +The daemon and app can also be built incrementally:
 +

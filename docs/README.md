@@ -28,8 +28,12 @@ The design rationale lives in [docs/design.md](docs/design.md).
 ```bash
 source build/envsetup.sh
 lunch aosp_cf_x86_64_phone-trunk_staging-userdebug
-m superimage systemimage productimage system_extimage vendorimage bootimage
+m superimage systemimage productimage systemextimage vendorimage bootimage \
+    vbmetaimage vbmetasystemimage
 ```
+
+When `system.img` is rebuilt incrementally, rebuild `vbmeta` and `vbmeta_system` as
+well; otherwise the guest fails AVB verification and reboots during first-stage init.
 
 The daemon and app can also be built incrementally:
 

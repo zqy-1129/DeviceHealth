@@ -82,8 +82,12 @@ Alternatively copy the test keys from the original build environment.
 ```bash
 source build/envsetup.sh
 lunch aosp_cf_x86_64_phone-trunk_staging-userdebug
-m superimage systemimage productimage system_extimage vendorimage bootimage
+m superimage systemimage productimage systemextimage vendorimage bootimage \
+    vbmetaimage vbmetasystemimage
 ```
+
+When `system.img` is rebuilt incrementally, rebuild `vbmeta` and `vbmeta_system` too;
+otherwise the guest fails AVB verification and reboots during first-stage init.
 
 Incremental targets:
 
