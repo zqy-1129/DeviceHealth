@@ -15,7 +15,7 @@ index 153007d..d52aaa6 100644
  #define CF_DEFAULTS_SYSTEM_IMAGE_DIR CF_DEFAULTS_DYNAMIC_STRING
  
 diff --git a/host/libs/config/config_utils.cpp b/host/libs/config/config_utils.cpp
-index 0ee9911..4c43ca8 100644
+index 0ee9911..e1e598d 100644
 --- a/host/libs/config/config_utils.cpp
 +++ b/host/libs/config/config_utils.cpp
 @@ -81,8 +81,13 @@ int GetVsockServerPort(const int base,
@@ -24,7 +24,7 @@ index 0ee9911..4c43ca8 100644
  
 +std::string GetCuttlefishRootDir() {
 +  return StringFromEnv("CUTTLEFISH_WORKSPACE",
-+                       "/home/zqy/work/WorkSpace/cuttlefish");
++                       StringFromEnv("HOME", ".") + "/cuttlefish");
 +}
 +
  std::string GetGlobalConfigFileLink() {
@@ -34,7 +34,7 @@ index 0ee9911..4c43ca8 100644
  
  std::string ForCurrentInstance(const char* prefix) {
 diff --git a/host/libs/config/config_utils.h b/host/libs/config/config_utils.h
-index 1f9ca28..74d1403 100644
+index 1f9ca28..e06a071 100644
 --- a/host/libs/config/config_utils.h
 +++ b/host/libs/config/config_utils.h
 @@ -32,6 +32,10 @@ int GetDefaultVsockCid();
@@ -42,7 +42,7 @@ index 1f9ca28..74d1403 100644
                         const int vsock_guest_cid);
  
 +// Returns the root directory for all Cuttlefish runtime data. Overridable with
-+// CUTTLEFISH_WORKSPACE; defaults to the workspace copy used by this tree.
++// CUTTLEFISH_WORKSPACE; defaults to $HOME/cuttlefish.
 +std::string GetCuttlefishRootDir();
 +
  // Returns a path where the launcher puts a link to the config file which makes
