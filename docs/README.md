@@ -84,11 +84,18 @@ adb shell cmd devicehealth debug reset-watchdog
 adb shell cmd devicehealth debug set-daemon-version 3
 adb shell cmd devicehealth debug set-daemon-version 0
 adb shell cmd devicehealth debug set-daemon-version reset
+adb shell cmd devicehealth debug set-daemon-capabilities 0x7
+adb shell cmd devicehealth debug set-daemon-capabilities reset
 adb shell cmd devicehealth reset
 ```
 
-`dumpsys devicehealth` reports the evaluated state, daemon compatibility, watchdog status,
-runtime thresholds, recent events, rejected samples and binder call statistics.
+`dumpsys devicehealth` reports the evaluated state, daemon compatibility, unknown daemon
+capability bits, watchdog status, runtime thresholds, recent events, rejected samples and
+binder call statistics.
+
+Threshold updates are persisted in `Settings.Global` (`devicehealth_thresholds`) and are
+restored before the evaluation loop starts, so runtime overrides survive a reboot.
+`cmd devicehealth thresholds reset` clears the stored configuration and restores defaults.
 
 ## Behavior highlights
 
@@ -123,11 +130,11 @@ tools/e2e_devicehealth.sh --stabilize
 tools/e2e_devicehealth.sh --slow --stabilize
 
 # Deterministic fault matrix: real SIGSTOP binder wedges, lock contention,
-# NEWER/TOO_OLD version skew, HAL death and daemon death.
+# version/capability skew, HAL death and daemon death.
 tools/fault_matrix.sh
 
-# Adds permission denial; --apex-missing removes the APEX across two reboots.
-tools/fault_matrix.sh --permission --apex-missing
+# Adds threshold persistence across reboots; --apex-missing removes the APEX.
+tools/fault_matrix.sh --persistence --permission --apex-missing
 ```
 
 The permission-denial test uses a privileged but non-platform-signed app that is **not**

@@ -128,11 +128,12 @@ tools/e2e_devicehealth.sh --stabilize
 # Adds watchdog, HAL stop/start, daemon kill/restart and app listener lifecycle.
 tools/e2e_devicehealth.sh --slow --stabilize
 
-# Fault matrix: real binder wedges, lock contention, version skew, component death.
+# Fault matrix: real binder wedges, lock contention, version/capability skew,
+# component death.
 tools/fault_matrix.sh
 
-# Adds the permission-denial checks.
-tools/fault_matrix.sh --permission
+# Adds threshold persistence across reboots and the permission-denial checks.
+tools/fault_matrix.sh --persistence --permission
 
 # Adds the real APEX removal/restore scenario (reboots the device twice).
 tools/fault_matrix.sh --apex-missing
@@ -163,19 +164,25 @@ Verified results for this delivery:
 
 - Host JUnit: 10/10 policy tests pass.
 - In-service policy checks: 18/18 pass.
-- Fast E2E: 27/27 without the permission app, 33/33 with it.
-- Slow E2E: 37/37 without the permission app, 43/43 with it.
-- Fault matrix: 35/35 non-destructive checks pass; 42/42 with `--permission`.
-- Fault matrix with `--apex-missing --permission`: 50/50 checks pass after removing and
-  restoring `/system_ext/apex/com.android.devicehealth.apex` across two reboots. With the
-  APEX removed, the app diagnostics page reports `daemon：不可用` / `APEX 版本：不可用`
-  and the in-app self-test reports `SELF-TEST FAIL`.
+- Fast E2E: 30/30 without the permission app, 36/36 with it.
+- Slow E2E: 44/44 without the permission app, 50/50 with it.
+- Fault matrix: 40/40 core checks pass; 52/52 with `--persistence --permission`.
+- Fault matrix with `--apex-missing --permission --persistence`: 60/60 checks pass after
+  removing and restoring `/system_ext/apex/com.android.devicehealth.apex` across two
+  reboots. With the APEX removed, the app diagnostics page reports `daemon：不可用` /
+  `APEX 版本：不可用` and the in-app self-test reports `SELF-TEST FAIL`.
 - A real `SIGSTOP` of `devicehealthd` drives the framework to `STALE` with
   `daemon: unavailable`, bounded `getSnapshot` timeouts and a `SIGCONT` recovery. A real
   `SIGSTOP` of the HAL keeps the daemon connected, ages cached samples into `STALE`, and
   recovers on `SIGCONT`.
 - Holding the service lock for 22s trips the watchdog: the loop is restarted on a fresh
   handler thread and `dumpsys` reports `trips 1` / `recoveries 1`.
+- Unknown daemon capability bits are exposed in `dumpsys` / `cmd status` (`none` normally),
+  logged on change, and flagged by `self-test`; injecting `0x7` reports `0x4`, and reset
+  clears both the override and the warning.
+- Threshold overrides persist in `Settings.Global` (`devicehealth_thresholds`) and are
+  restored before the evaluation loop starts; `thresholds reset` clears the entry and the
+  defaults survive a further reboot.
 - HAL binder death is reported immediately by the death recipient, the framework moves to
   `STALE`, and the daemon reconnects after the HAL restarts.
 - The watchdog restarts a stalled evaluation loop on a fresh handler thread; `dumpsys`

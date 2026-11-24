@@ -68,6 +68,9 @@ if [ "$STABILIZE" = 1 ]; then
     "$ADB" shell svc data disable >/dev/null 2>&1 || true
 fi
 
+sh cmd devicehealth debug set-daemon-capabilities reset >/dev/null 2>&1
+sh cmd devicehealth thresholds reset >/dev/null 2>&1
+
 section "Services and APEX"
 out=$(sh service check devicehealth)
 contains "framework service registered" "$out" "found"
@@ -88,6 +91,7 @@ section "Baseline diagnostics"
 dump=$(sh dumpsys devicehealth)
 contains "daemon connected" "$dump" "daemon: connected"
 contains "daemon compatibility OK" "$dump" "compatibility: OK"
+contains "unknown capabilities reported" "$dump" "unknown capabilities: none"
 contains "watchdog healthy" "$dump" "watchdog: ok"
 out=$(sh cmd devicehealth self-test)
 contains "service self-test passes" "$out" "SELF-TEST PASS"
@@ -99,12 +103,16 @@ out=$(sh cmd devicehealth thresholds)
 contains "default thermal thresholds" "$out" "thermal.: warn 65.0/60.0 crit 75.0/70.0"
 out=$(sh cmd devicehealth thresholds set memory.pressure 70 65 85 80 2)
 contains "threshold update applied" "$out" "Updated memory.pressure"
+out=$(sh settings get global devicehealth_thresholds)
+contains "threshold override persisted" "$out" "memory.pressure"
 out=$(sh 'cmd devicehealth thresholds set memory.pressure 60 65 85 80 2; echo exit=$?')
 contains "inverted thresholds rejected" "$out" "warningClear"
 contains "inverted thresholds exit code" "$out" "exit=255"
 out=$(sh cmd devicehealth thresholds set thermal.cpu 65 60 200 70 3)
 contains "out-of-range thresholds rejected" "$out" "outside"
 sh cmd devicehealth thresholds reset >/dev/null
+out=$(sh settings get global devicehealth_thresholds)
+contains "threshold override cleared" "$out" "null"
 out=$(sh cmd devicehealth thresholds)
 contains "thresholds restored" "$out" "thermal.: warn 65.0/60.0 crit 75.0/70.0"
 
@@ -154,6 +162,19 @@ if [ "$SLOW" = 1 ]; then
     matches "watchdog auto-recovery recorded" "$dump" "recoveries [1-9]"
     out=$(sh logcat -d -s DeviceHealthService)
     contains "watchdog logs recovery" "$out" "Watchdog: evaluation loop recovered"
+
+    section "Capability reporting"
+    sh cmd devicehealth debug set-daemon-capabilities 0x7 >/dev/null
+    sleep 3
+    out=$(sh cmd devicehealth status)
+    contains "unknown capability bits reported" "$out" "unknown capabilities: 0x4"
+    contains "capability override visible" "$out" "daemon capabilities override: 0x7 (debug)"
+    out=$(sh cmd devicehealth self-test)
+    contains "self-test warns about unknown capabilities" "$out" "WARN capabilities: unknown bits 0x4"
+    sh cmd devicehealth debug set-daemon-capabilities reset >/dev/null
+    sleep 3
+    out=$(sh cmd devicehealth status)
+    contains "unknown capabilities cleared" "$out" "unknown capabilities: none"
 
     section "HAL failure and recovery"
     "$ADB" root >/dev/null 2>&1

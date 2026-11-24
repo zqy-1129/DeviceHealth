@@ -13,6 +13,7 @@
 # Usage:
 #   tools/fault_matrix.sh                  # all non-destructive scenarios
 #   tools/fault_matrix.sh --permission     # + permission-denial checks
+#   tools/fault_matrix.sh --persistence    # + threshold persistence across reboots
 #   tools/fault_matrix.sh --apex-missing   # + real APEX removal/restore (reboots)
 #
 # The APEX scenario removes /system_ext/apex/com.android.devicehealth.apex through
@@ -25,6 +26,7 @@ set -u
 ADB="${ADB:-adb}"
 OUT_DIR="${OUT_DIR:-/tmp/devicehealth-faults-$(date +%Y%m%d-%H%M%S)}"
 PERMISSION=0
+PERSISTENCE=0
 APEX_MISSING=0
 APEX_REMOVED=0
 APEX_BACKUP=/data/local/tmp/com.android.devicehealth.apex.bak
@@ -32,12 +34,13 @@ DAEMON_STOPPED_PID=""
 HAL_STOPPED_PID=""
 
 usage() {
-    echo "Usage: $0 [--permission] [--apex-missing]"
+    echo "Usage: $0 [--permission] [--persistence] [--apex-missing]"
 }
 
 for arg in "$@"; do
     case "$arg" in
         --permission) PERMISSION=1 ;;
+        --persistence) PERSISTENCE=1 ;;
         --apex-missing) APEX_MISSING=1 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unknown option: $arg"; usage; exit 2 ;;
@@ -140,7 +143,9 @@ trap cleanup EXIT
 "$ADB" wait-for-device
 sleep 2
 sh cmd devicehealth debug set-daemon-version reset >/dev/null 2>&1
+sh cmd devicehealth debug set-daemon-capabilities reset >/dev/null 2>&1
 sh cmd devicehealth debug reset-watchdog >/dev/null 2>&1
+sh cmd devicehealth thresholds reset >/dev/null 2>&1
 sh cmd devicehealth clear-simulated >/dev/null 2>&1
 
 section "Baseline"
@@ -260,6 +265,23 @@ else
     pass "version override removed"
 fi
 
+section "Fault: unknown capability bits"
+sh logcat -c
+sh cmd devicehealth debug set-daemon-capabilities 0x7 >/dev/null
+sleep 2
+out=$(sh cmd devicehealth status)
+contains "unknown capability bits reported" "$out" "unknown capabilities: 0x4"
+contains "capability override visible" "$out" "daemon capabilities override: 0x7 (debug)"
+if wait_for_text "reports unknown capabilities 0x4" 10; then
+    pass "framework logs the unknown capability bits"
+else
+    fail "framework logs the unknown capability bits"
+fi
+sh cmd devicehealth debug set-daemon-capabilities reset >/dev/null
+sleep 2
+out=$(sh cmd devicehealth status)
+contains "unknown capabilities cleared" "$out" "unknown capabilities: none"
+
 section "Fault: TOO_OLD daemon version"
 sh cmd devicehealth debug set-daemon-version 0 >/dev/null
 out=$(sh cmd devicehealth status)
@@ -364,8 +386,43 @@ if [ "$PERMISSION" = 1 ]; then
     sh am force-stop com.android.devicehealthcenter.denialtest >/dev/null 2>&1
 fi
 
+if [ "$PERSISTENCE" = 1 ]; then
+    section "Fault: threshold persistence across reboot"
+    sh cmd devicehealth thresholds set thermal.cpu 61 56 71 66 4 >/dev/null
+    out=$(sh settings get global devicehealth_thresholds)
+    contains "threshold override written to settings" "$out" "61"
+    out=$(sh cmd devicehealth thresholds)
+    contains "override active before reboot" "$out" \
+            "thermal.: warn 61.0/56.0 crit 71.0/66.0 debounce 4"
+    # SettingsProvider persists asynchronously; give it time before rebooting.
+    sleep 5
+    sh reboot >/dev/null
+    wait_for_boot
+    out=$(sh cmd devicehealth thresholds)
+    contains "override restored after reboot" "$out" \
+            "thermal.: warn 61.0/56.0 crit 71.0/66.0 debounce 4"
+    if wait_for_text "Restored 2 persisted threshold override" 15; then
+        pass "framework logs threshold restoration"
+    else
+        fail "framework logs threshold restoration"
+    fi
+    sh cmd devicehealth thresholds reset >/dev/null
+    out=$(sh settings get global devicehealth_thresholds)
+    contains "reset clears persisted override" "$out" "null"
+    sleep 5
+    sh reboot >/dev/null
+    wait_for_boot
+    out=$(sh cmd devicehealth thresholds)
+    contains "defaults restored after second reboot" "$out" \
+            "thermal.: warn 65.0/60.0 crit 75.0/70.0"
+fi
+
 if [ "$APEX_MISSING" = 1 ]; then
     section "Fault: APEX missing (real removal + reboot)"
+    # Earlier reboot scenarios can leave adbd unrooted; remount needs root.
+    "$ADB" root >/dev/null 2>&1
+    "$ADB" wait-for-device
+    sleep 2
     sh remount >/dev/null 2>&1
     sh cp /system_ext/apex/com.android.devicehealth.apex "$APEX_BACKUP" >/dev/null
     sh rm /system_ext/apex/com.android.devicehealth.apex

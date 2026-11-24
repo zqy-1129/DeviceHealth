@@ -1329,10 +1329,10 @@ index 5fe4be72..2585971e 100644
          "android.hardware.authsecret-V1-java",
 diff --git a/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
 new file mode 100644
-index 00000000..c1be1d3d
+index 00000000..88106d0e
 --- /dev/null
 +++ b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
-@@ -0,0 +1,1790 @@
+@@ -0,0 +1,1970 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1382,10 +1382,15 @@ index 00000000..c1be1d3d
 +import android.os.ShellCommand;
 +import android.os.SystemClock;
 +import android.os.Trace;
++import android.provider.Settings;
 +import android.util.Slog;
 +
 +import com.android.internal.util.DumpUtils;
 +import com.android.server.SystemService;
++
++import org.json.JSONArray;
++import org.json.JSONException;
++import org.json.JSONObject;
 +
 +import java.io.FileDescriptor;
 +import java.io.PrintWriter;
@@ -1393,6 +1398,7 @@ index 00000000..c1be1d3d
 +import java.util.ArrayList;
 +import java.util.Collections;
 +import java.util.HashMap;
++import java.util.Iterator;
 +import java.util.List;
 +import java.util.Map;
 +import java.util.NoSuchElementException;
@@ -1430,6 +1436,8 @@ index 00000000..c1be1d3d
 +    private static final int MIN_DAEMON_VERSION = 1;
 +    private static final int MAX_DAEMON_VERSION = 2;
 +    private static final int KNOWN_DAEMON_CAPABILITIES = 0x3;
++    private static final String THRESHOLDS_SETTING = "devicehealth_thresholds";
++    private static final int THRESHOLDS_SETTING_VERSION = 1;
 +    private static final float THERMAL_MIN_C = -40.0f;
 +    private static final float THERMAL_MAX_C = 150.0f;
 +    private static final float MEMORY_MIN_PERCENT = 0.0f;
@@ -1462,6 +1470,7 @@ index 00000000..c1be1d3d
 +    private volatile long mLastEvaluationDurationMs;
 +    private volatile long mLastWatchdogRecoveryMs;
 +    private volatile int mDaemonVersionOverride = -1;
++    private volatile int mDaemonCapabilitiesOverride = -1;
 +    private volatile boolean mEvaluationStallReported;
 +    private volatile String mLastRejectedSample = "";
 +    private long mLastRejectedLogMs;
@@ -1523,6 +1532,7 @@ index 00000000..c1be1d3d
 +    public void onBootPhase(int phase) {
 +        if (phase == PHASE_SYSTEM_SERVICES_READY) {
 +            ensureNotificationChannel();
++            restoreThresholdsFromSettings();
 +            startEvaluationLoop();
 +        }
 +    }
@@ -1687,6 +1697,139 @@ index 00000000..c1be1d3d
 +    private int effectiveDaemonVersion(int reportedVersion) {
 +        int override = mDaemonVersionOverride;
 +        return override >= 0 ? override : reportedVersion;
++    }
++
++    private int effectiveCapabilities(int reportedCapabilities) {
++        int override = mDaemonCapabilitiesOverride;
++        return override >= 0 ? override : reportedCapabilities;
++    }
++
++    private static String describeUnknownCapabilities(int capabilities) {
++        int unknown = capabilities & ~KNOWN_DAEMON_CAPABILITIES;
++        return unknown == 0 ? "none" : "0x" + Integer.toHexString(unknown);
++    }
++
++    /** Persists the effective thresholds so runtime overrides survive a reboot. */
++    private void persistThresholdsToSettings() {
++        try {
++            JSONObject thresholds = new JSONObject();
++            for (Map.Entry<String, PolicyEngine.Thresholds> entry
++                    : mPolicyEngine.getThresholds().entrySet()) {
++                PolicyEngine.Thresholds threshold = entry.getValue();
++                JSONArray values = new JSONArray();
++                values.put(threshold.warningEnter);
++                values.put(threshold.warningClear);
++                values.put(threshold.criticalEnter);
++                values.put(threshold.criticalClear);
++                values.put(threshold.debounceSamples);
++                thresholds.put(entry.getKey(), values);
++            }
++            JSONObject root = new JSONObject();
++            root.put("version", THRESHOLDS_SETTING_VERSION);
++            root.put("thresholds", thresholds);
++            final long token = Binder.clearCallingIdentity();
++            try {
++                Settings.Global.putString(getContext().getContentResolver(), THRESHOLDS_SETTING,
++                        root.toString());
++            } finally {
++                Binder.restoreCallingIdentity(token);
++            }
++            Slog.i(TAG, "Persisted threshold configuration");
++        } catch (JSONException | RuntimeException e) {
++            Slog.w(TAG, "Unable to persist thresholds", e);
++        }
++    }
++
++    /** Restores threshold overrides written by {@link #persistThresholdsToSettings()}. */
++    private void restoreThresholdsFromSettings() {
++        String raw;
++        try {
++            raw = Settings.Global.getString(getContext().getContentResolver(), THRESHOLDS_SETTING);
++        } catch (RuntimeException e) {
++            Slog.w(TAG, "Unable to read persisted thresholds", e);
++            return;
++        }
++        if (raw == null || raw.isEmpty()) {
++            return;
++        }
++        try {
++            JSONObject root = new JSONObject(raw);
++            if (root.optInt("version", 0) != THRESHOLDS_SETTING_VERSION) {
++                Slog.w(TAG, "Ignoring persisted thresholds with unsupported version");
++                return;
++            }
++            JSONObject thresholds = root.optJSONObject("thresholds");
++            if (thresholds == null) {
++                return;
++            }
++            int restored = 0;
++            Iterator<String> keys = thresholds.keys();
++            while (keys.hasNext()) {
++                String key = keys.next();
++                if (mPolicyEngine.thresholdKeyFor(key) == null) {
++                    Slog.w(TAG, "Ignoring persisted thresholds for unsupported key " + key);
++                    continue;
++                }
++                JSONArray values = thresholds.optJSONArray(key);
++                if (values == null || values.length() != 5) {
++                    Slog.w(TAG, "Ignoring malformed persisted thresholds for " + key);
++                    continue;
++                }
++                float warningEnter = (float) values.getDouble(0);
++                float warningClear = (float) values.getDouble(1);
++                float criticalEnter = (float) values.getDouble(2);
++                float criticalClear = (float) values.getDouble(3);
++                int debounceSamples = values.getInt(4);
++                String problem = PolicyEngine.validateThresholds(warningEnter, warningClear,
++                        criticalEnter, criticalClear, debounceSamples);
++                if (problem == null) {
++                    problem = validateThresholdRange(key,
++                            new float[] {warningEnter, warningClear, criticalEnter, criticalClear});
++                }
++                if (problem != null) {
++                    Slog.w(TAG, "Ignoring persisted thresholds for " + key + ": " + problem);
++                    continue;
++                }
++                mPolicyEngine.setThresholds(key, new PolicyEngine.Thresholds(warningEnter,
++                        warningClear, criticalEnter, criticalClear, debounceSamples));
++                restored++;
++            }
++            Slog.i(TAG, "Restored " + restored + " persisted threshold override(s)");
++        } catch (JSONException | RuntimeException e) {
++            Slog.w(TAG, "Unable to restore persisted thresholds", e);
++        }
++    }
++
++    private void clearPersistedThresholds() {
++        final long token = Binder.clearCallingIdentity();
++        try {
++            Settings.Global.putString(getContext().getContentResolver(), THRESHOLDS_SETTING, null);
++        } catch (RuntimeException e) {
++            Slog.w(TAG, "Unable to clear persisted thresholds", e);
++        } finally {
++            Binder.restoreCallingIdentity(token);
++        }
++    }
++
++    private static String validateThresholdRange(String key, float[] values) {
++        float min;
++        float max;
++        if ("thermal.".equals(key)) {
++            min = THERMAL_MIN_C;
++            max = THERMAL_MAX_C;
++        } else if ("memory.pressure".equals(key)) {
++            min = MEMORY_MIN_PERCENT;
++            max = MEMORY_MAX_PERCENT;
++        } else {
++            return null;
++        }
++        for (float value : values) {
++            if (value < min || value > max) {
++                return "threshold " + value + " is outside " + key + " range ["
++                        + min + ", " + max + "]";
++            }
++        }
++        return null;
 +    }
 +
 +    /** Bounds the daemon binder call so a wedged devicehealthd cannot stall evaluation. */
@@ -1889,7 +2032,7 @@ index 00000000..c1be1d3d
 +                        || result.overallSeverity == DeviceHealthSnapshot.SEVERITY_STALE
 +                        || result.overallSeverity == DeviceHealthSnapshot.SEVERITY_UNKNOWN;
 +                daemonVersion = raw.daemonVersion;
-+                capabilities = raw.capabilities;
++                capabilities = effectiveCapabilities(raw.capabilities);
 +                noteUnknownCapabilitiesLocked(capabilities);
 +                mLastMetrics = metrics;
 +                mLastSnapshotTimestampMs = snapshotTimestamp;
@@ -1936,10 +2079,14 @@ index 00000000..c1be1d3d
 +
 +    private void noteUnknownCapabilitiesLocked(int capabilities) {
 +        int unknown = capabilities & ~KNOWN_DAEMON_CAPABILITIES;
-+        if (unknown != 0 && unknown != mLastUnknownCapabilities) {
++        if (unknown != mLastUnknownCapabilities) {
 +            mLastUnknownCapabilities = unknown;
-+            Slog.w(TAG, "devicehealthd reports unknown capabilities 0x"
-+                    + Integer.toHexString(unknown));
++            if (unknown != 0) {
++                Slog.w(TAG, "devicehealthd reports unknown capabilities 0x"
++                        + Integer.toHexString(unknown));
++            } else {
++                Slog.i(TAG, "devicehealthd unknown capabilities cleared");
++            }
 +        }
 +    }
 +
@@ -2435,9 +2582,15 @@ index 00000000..c1be1d3d
 +                        + Integer.toHexString(mLastSnapshot.getCapabilities()));
 +                pw.println("  compatibility: " + compatibilityName(daemonInfo.getCompatibility())
 +                        + " (supported " + MIN_DAEMON_VERSION + ".." + MAX_DAEMON_VERSION + ")");
++                pw.println("  unknown capabilities: "
++                        + describeUnknownCapabilities(mLastSnapshot.getCapabilities()));
 +                if (mDaemonVersionOverride >= 0) {
 +                    pw.println("  daemon version override: " + mDaemonVersionOverride
 +                            + " (debug)");
++                }
++                if (mDaemonCapabilitiesOverride >= 0) {
++                    pw.println("  daemon capabilities override: 0x"
++                            + Integer.toHexString(mDaemonCapabilitiesOverride) + " (debug)");
 +                }
 +                pw.println("  listeners: " + mListeners.getRegisteredCallbackCount());
 +                pw.println("  watchdog: " + (mEvaluationStallReported ? "STALLED" : "ok")
@@ -2563,6 +2716,8 @@ index 00000000..c1be1d3d
 +            pw.println("    Reset watchdog trips, recoveries and cooldown.");
 +            pw.println("  debug set-daemon-version <version|reset>");
 +            pw.println("    Simulate an incompatible daemon interface version.");
++            pw.println("  debug set-daemon-capabilities <mask|reset>");
++            pw.println("    Simulate daemon capability bits (decimal or 0x hex).");
 +            pw.println("  reset");
 +            pw.println("    Clear events and reset the policy state.");
 +            pw.println("  self-test");
@@ -2606,6 +2761,12 @@ index 00000000..c1be1d3d
 +                if (mDaemonVersionOverride >= 0) {
 +                    pw.println("daemon version override: " + mDaemonVersionOverride + " (debug)");
 +                }
++                if (mDaemonCapabilitiesOverride >= 0) {
++                    pw.println("daemon capabilities override: 0x"
++                            + Integer.toHexString(mDaemonCapabilitiesOverride) + " (debug)");
++                }
++                pw.println("unknown capabilities: "
++                        + describeUnknownCapabilities(mLastSnapshot.getCapabilities()));
 +                pw.println("listeners: " + mListeners.getRegisteredCallbackCount());
 +                pw.println("watchdog: " + (mEvaluationStallReported ? "STALLED" : "ok")
 +                        + " (trips " + mWatchdogTrips.get()
@@ -2690,6 +2851,7 @@ index 00000000..c1be1d3d
 +            }
 +            if ("reset".equals(action)) {
 +                mPolicyEngine.resetThresholds();
++                clearPersistedThresholds();
 +                mPolicyEngine.reset();
 +                refresh();
 +                printThresholds(pw);
@@ -2752,32 +2914,12 @@ index 00000000..c1be1d3d
 +            mPolicyEngine.setThresholds(key,
 +                    new PolicyEngine.Thresholds(values[0], values[1], values[2], values[3],
 +                            debounceSamples));
++            persistThresholdsToSettings();
 +            mPolicyEngine.reset();
 +            refresh();
 +            printThresholds(pw);
 +            pw.println("Updated " + key + "; policy state reset for re-evaluation");
 +            return 0;
-+        }
-+
-+        private String validateThresholdRange(String key, float[] values) {
-+            float min;
-+            float max;
-+            if ("thermal.".equals(key)) {
-+                min = THERMAL_MIN_C;
-+                max = THERMAL_MAX_C;
-+            } else if ("memory.pressure".equals(key)) {
-+                min = MEMORY_MIN_PERCENT;
-+                max = MEMORY_MAX_PERCENT;
-+            } else {
-+                return null;
-+            }
-+            for (float value : values) {
-+                if (value < min || value > max) {
-+                    return "threshold " + value + " is outside " + key + " range ["
-+                            + min + ", " + max + "]";
-+                }
-+            }
-+            return null;
 +        }
 +
 +        private void printThresholds(PrintWriter pw) {
@@ -2895,7 +3037,8 @@ index 00000000..c1be1d3d
 +            if (what == null) {
 +                getErrPrintWriter().println(
 +                        "Usage: cmd devicehealth debug stall <ms>|hold-lock <ms>|"
-+                                + "reset-watchdog|set-daemon-version <version|reset>");
++                                + "reset-watchdog|set-daemon-version <version|reset>|"
++                                + "set-daemon-capabilities <mask|reset>");
 +                return -1;
 +            }
 +            if ("stall".equals(what)) {
@@ -2983,6 +3126,38 @@ index 00000000..c1be1d3d
 +                refresh();
 +                return 0;
 +            }
++            if ("set-daemon-capabilities".equals(what)) {
++                String arg = getNextArg();
++                if (arg == null) {
++                    getErrPrintWriter().println("Usage: cmd devicehealth debug "
++                            + "set-daemon-capabilities <mask|reset>");
++                    return -1;
++                }
++                if ("reset".equals(arg)) {
++                    mDaemonCapabilitiesOverride = -1;
++                    getOutPrintWriter().println("Daemon capabilities override cleared");
++                } else {
++                    int mask;
++                    try {
++                        mask = arg.startsWith("0x") || arg.startsWith("0X")
++                                ? Integer.parseInt(arg.substring(2), 16)
++                                : Integer.parseInt(arg);
++                    } catch (NumberFormatException e) {
++                        getErrPrintWriter().println("Invalid capability mask: " + arg);
++                        return -1;
++                    }
++                    if (mask < 0) {
++                        getErrPrintWriter().println("Capability mask must be non-negative");
++                        return -1;
++                    }
++                    mDaemonCapabilitiesOverride = mask;
++                    getOutPrintWriter().println("Daemon capabilities override set to 0x"
++                            + Integer.toHexString(mask));
++                }
++                mPolicyEngine.reset();
++                refresh();
++                return 0;
++            }
 +            getErrPrintWriter().println("Unknown debug command: " + what);
 +            return -1;
 +        }
@@ -3048,9 +3223,14 @@ index 00000000..c1be1d3d
 +                        pw.println("PASS compatibility: daemon version " + version
 +                                + " in " + MIN_DAEMON_VERSION + ".." + MAX_DAEMON_VERSION);
 +                    }
++                    int capabilities = effectiveCapabilities(snapshot.capabilities);
 +                    pw.println("PASS daemon: version=" + snapshot.daemonVersion
-+                            + " capabilities=0x"
-+                            + Integer.toHexString(snapshot.capabilities));
++                            + " capabilities=0x" + Integer.toHexString(capabilities));
++                    int unknownCapabilities = capabilities & ~KNOWN_DAEMON_CAPABILITIES;
++                    if (unknownCapabilities != 0) {
++                        pw.println("WARN capabilities: unknown bits 0x"
++                                + Integer.toHexString(unknownCapabilities) + " ignored");
++                    }
 +                    int count = snapshot.metrics == null ? 0 : snapshot.metrics.length;
 +                    if (count == 0) {
 +                        pw.println("FAIL metrics: no samples reported");
