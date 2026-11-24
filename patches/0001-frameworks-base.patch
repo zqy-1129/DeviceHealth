@@ -1315,10 +1315,10 @@ index 5fe4be72..4757bb56 100644
          "android.hardware.authsecret-V1-java",
 diff --git a/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
 new file mode 100644
-index 00000000..1ce8dddd
+index 00000000..1700c0c7
 --- /dev/null
 +++ b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
-@@ -0,0 +1,1749 @@
+@@ -0,0 +1,1750 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1568,7 +1568,8 @@ index 00000000..1ce8dddd
 +                mWatchdogTrips.incrementAndGet();
 +                Slog.e(TAG, "Watchdog: evaluation loop stalled for " + ageMs + "ms");
 +                long now = SystemClock.elapsedRealtime();
-+                if (now - mLastWatchdogRecoveryMs >= WATCHDOG_RECOVERY_COOLDOWN_MS) {
++                if (mLastWatchdogRecoveryMs == 0
++                        || now - mLastWatchdogRecoveryMs >= WATCHDOG_RECOVERY_COOLDOWN_MS) {
 +                    mLastWatchdogRecoveryMs = now;
 +                    restartEvaluationLoop("stalled " + ageMs + "ms");
 +                } else {
