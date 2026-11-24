@@ -1,0 +1,553 @@
+diff --git a/compatibility_matrices/compatibility_matrix.202404.xml b/compatibility_matrices/compatibility_matrix.202404.xml
+index cf7de22..5d55922 100644
+--- a/compatibility_matrices/compatibility_matrix.202404.xml
++++ b/compatibility_matrices/compatibility_matrix.202404.xml
+@@ -271,6 +271,14 @@
+             <instance>default</instance>
+         </interface>
+     </hal>
++    <hal format="aidl">
++        <name>android.hardware.devicehealth</name>
++        <version>1</version>
++        <interface>
++            <name>IDeviceHealth</name>
++            <instance>default</instance>
++        </interface>
++    </hal>
+     <hal format="aidl">
+         <name>android.hardware.identity</name>
+         <version>1-5</version>
+diff --git a/devicehealth/aidl/Android.bp b/devicehealth/aidl/Android.bp
+new file mode 100644
+index 0000000..6309565
+--- /dev/null
++++ b/devicehealth/aidl/Android.bp
+@@ -0,0 +1,45 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package {
++    default_applicable_licenses: ["hardware_interfaces_license"],
++}
++
++aidl_interface {
++    name: "android.hardware.devicehealth",
++    vendor_available: true,
++    srcs: [
++        "android/hardware/devicehealth/*.aidl",
++    ],
++    stability: "vintf",
++    backend: {
++        cpp: {
++            enabled: true,
++        },
++        ndk: {
++            enabled: true,
++            apex_available: [
++                "//apex_available:platform",
++                "com.android.devicehealth",
++            ],
++            min_sdk_version: "34",
++        },
++        java: {
++            enabled: true,
++            sdk_version: "module_current",
++        },
++    },
++}
+diff --git a/devicehealth/aidl/aidl_api/android.hardware.devicehealth/current/android/hardware/devicehealth/IDeviceHealth.aidl b/devicehealth/aidl/aidl_api/android.hardware.devicehealth/current/android/hardware/devicehealth/IDeviceHealth.aidl
+new file mode 100644
+index 0000000..0bbb54c
+--- /dev/null
++++ b/devicehealth/aidl/aidl_api/android.hardware.devicehealth/current/android/hardware/devicehealth/IDeviceHealth.aidl
+@@ -0,0 +1,38 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++///////////////////////////////////////////////////////////////////////////////
++// THIS FILE IS IMMUTABLE. DO NOT EDIT IN ANY CASE.                          //
++///////////////////////////////////////////////////////////////////////////////
++
++// This file is a snapshot of an AIDL file. Do not edit it manually. There are
++// two cases:
++// 1). this is a frozen version file - do not edit this in any case.
++// 2). this is a 'current' file. If you make a backwards compatible change to
++//     the interface (from the latest frozen version), the build system will
++//     prompt you to update this file with `m <name>-update-api`.
++//
++// You must not make a backward incompatible change to any AIDL file built
++// with the aidl_interface module type with versions property set. The module
++// type is used to build AIDL files in a way that they can be used across
++// independently updatable components of the system. If a device is shipped
++// with such a backward incompatible change, it has a high risk of breaking
++// later when a module using the interface is updated, e.g., Mainline modules.
++
++package android.hardware.devicehealth;
++@VintfStability
++interface IDeviceHealth {
++  android.hardware.devicehealth.MetricSample[] getMetrics();
++}
+diff --git a/devicehealth/aidl/aidl_api/android.hardware.devicehealth/current/android/hardware/devicehealth/MetricSample.aidl b/devicehealth/aidl/aidl_api/android.hardware.devicehealth/current/android/hardware/devicehealth/MetricSample.aidl
+new file mode 100644
+index 0000000..f8a5491
+--- /dev/null
++++ b/devicehealth/aidl/aidl_api/android.hardware.devicehealth/current/android/hardware/devicehealth/MetricSample.aidl
+@@ -0,0 +1,43 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++///////////////////////////////////////////////////////////////////////////////
++// THIS FILE IS IMMUTABLE. DO NOT EDIT IN ANY CASE.                          //
++///////////////////////////////////////////////////////////////////////////////
++
++// This file is a snapshot of an AIDL file. Do not edit it manually. There are
++// two cases:
++// 1). this is a frozen version file - do not edit this in any case.
++// 2). this is a 'current' file. If you make a backwards compatible change to
++//     the interface (from the latest frozen version), the build system will
++//     prompt you to update this file with `m <name>-update-api`.
++//
++// You must not make a backward incompatible change to any AIDL file built
++// with the aidl_interface module type with versions property set. The module
++// type is used to build AIDL files in a way that they can be used across
++// independently updatable components of the system. If a device is shipped
++// with such a backward incompatible change, it has a high risk of breaking
++// later when a module using the interface is updated, e.g., Mainline modules.
++
++package android.hardware.devicehealth;
++@JavaDerive(toString=true) @VintfStability
++parcelable MetricSample {
++  String id;
++  String name;
++  float value;
++  String unit;
++  long timestampMs;
++  boolean simulated;
++}
+diff --git a/devicehealth/aidl/android/hardware/devicehealth/IDeviceHealth.aidl b/devicehealth/aidl/android/hardware/devicehealth/IDeviceHealth.aidl
+new file mode 100644
+index 0000000..7796fe6
+--- /dev/null
++++ b/devicehealth/aidl/android/hardware/devicehealth/IDeviceHealth.aidl
+@@ -0,0 +1,38 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.hardware.devicehealth;
++
++import android.hardware.devicehealth.MetricSample;
++
++/**
++ * Provides raw health metric samples from the vendor.
++ *
++ * <p>Implementations must return the latest available samples. If a sensor is
++ * unavailable, the implementation may return a simulated sample with
++ * {@link MetricSample#simulated} set to true. Policy decisions, thresholds and
++ * history are intentionally handled by the framework, not by this HAL.
++ */
++@VintfStability
++interface IDeviceHealth {
++    /**
++     * Returns the latest metric samples.
++     *
++     * @return a non-empty list of samples, or an empty list if no data is
++     *     available at all.
++     */
++    MetricSample[] getMetrics();
++}
+diff --git a/devicehealth/aidl/android/hardware/devicehealth/MetricSample.aidl b/devicehealth/aidl/android/hardware/devicehealth/MetricSample.aidl
+new file mode 100644
+index 0000000..17d8f09
+--- /dev/null
++++ b/devicehealth/aidl/android/hardware/devicehealth/MetricSample.aidl
+@@ -0,0 +1,42 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.hardware.devicehealth;
++
++/**
++ * A single health metric sample provided by a vendor health sensor.
++ */
++@JavaDerive(toString=true)
++@VintfStability
++parcelable MetricSample {
++    /** Stable identifier, for example "thermal.zone0". */
++    String id;
++
++    /** Human-readable name, for example "CPU". */
++    String name;
++
++    /** Numeric value expressed in {@link #unit}. */
++    float value;
++
++    /** Unit of the value, for example "C" or "percent". */
++    String unit;
++
++    /** Timestamp in milliseconds since boot. */
++    long timestampMs;
++
++    /** True when the value is simulated rather than read from hardware. */
++    boolean simulated;
++}
+diff --git a/devicehealth/aidl/default/Android.bp b/devicehealth/aidl/default/Android.bp
+new file mode 100644
+index 0000000..2f38477
+--- /dev/null
++++ b/devicehealth/aidl/default/Android.bp
+@@ -0,0 +1,53 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package {
++    default_applicable_licenses: ["hardware_interfaces_license"],
++}
++
++cc_library_static {
++    name: "libdevicehealthexampleimpl",
++    vendor_available: true,
++    shared_libs: [
++        "android.hardware.devicehealth-V1-ndk",
++        "libbase",
++        "libbinder_ndk",
++    ],
++    export_include_dirs: ["."],
++    srcs: ["DeviceHealth.cpp"],
++}
++
++prebuilt_etc {
++    name: "android.hardware.devicehealth.xml",
++    src: "devicehealth-default.xml",
++    sub_dir: "vintf",
++    installable: false,
++}
++
++cc_binary {
++    name: "com.android.hardware.devicehealth",
++    relative_install_path: "hw",
++    init_rc: ["devicehealth-default.rc"],
++    vintf_fragments: [":android.hardware.devicehealth.xml"],
++    vendor: true,
++    shared_libs: [
++        "android.hardware.devicehealth-V1-ndk",
++        "libbase",
++        "libbinder_ndk",
++    ],
++    static_libs: ["libdevicehealthexampleimpl"],
++    srcs: ["main.cpp"],
++}
+diff --git a/devicehealth/aidl/default/DeviceHealth.cpp b/devicehealth/aidl/default/DeviceHealth.cpp
+new file mode 100644
+index 0000000..af6afc0
+--- /dev/null
++++ b/devicehealth/aidl/default/DeviceHealth.cpp
+@@ -0,0 +1,119 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include "DeviceHealth.h"
++
++#include <android-base/file.h>
++#include <android-base/logging.h>
++#include <android-base/strings.h>
++
++#include <glob.h>
++#include <time.h>
++
++#include <cstdlib>
++#include <string>
++#include <utility>
++#include <vector>
++
++namespace aidl::android::hardware::devicehealth {
++
++namespace {
++
++int64_t nowMs() {
++    timespec ts{};
++    clock_gettime(CLOCK_BOOTTIME, &ts);
++    return static_cast<int64_t>(ts.tv_sec) * 1000 + ts.tv_nsec / 1000000;
++}
++
++std::string zoneId(const std::string& path) {
++    const auto slash = path.find_last_of('/');
++    return "thermal." + (slash == std::string::npos ? path : path.substr(slash + 1));
++}
++
++MetricSample makeSample(const std::string& id, const std::string& name, float value,
++                        bool simulated) {
++    MetricSample sample;
++    sample.id = id;
++    sample.name = name;
++    sample.value = value;
++    sample.unit = "C";
++    sample.timestampMs = nowMs();
++    sample.simulated = simulated;
++    return sample;
++}
++
++}  // namespace
++
++std::vector<MetricSample> DeviceHealth::readThermalZones() {
++    std::vector<MetricSample> samples;
++
++    glob_t globResult{};
++    const int ret = glob("/sys/class/thermal/thermal_zone*", GLOB_NOSORT, nullptr, &globResult);
++    if (ret != 0) {
++        if (ret != GLOB_NOMATCH) {
++            LOG(WARNING) << "Unable to enumerate thermal zones: " << ret;
++        }
++        return samples;
++    }
++
++    for (size_t i = 0; i < globResult.gl_pathc; ++i) {
++        const std::string dir = globResult.gl_pathv[i];
++
++        std::string type;
++        std::string tempRaw;
++        if (!::android::base::ReadFileToString(dir + "/type", &type) ||
++            !::android::base::ReadFileToString(dir + "/temp", &tempRaw)) {
++            continue;
++        }
++
++        type = ::android::base::Trim(type);
++        tempRaw = ::android::base::Trim(tempRaw);
++
++        char* end = nullptr;
++        const float milliCelsius = std::strtof(tempRaw.c_str(), &end);
++        if (end == tempRaw.c_str()) {
++            LOG(WARNING) << "Invalid temperature in " << dir << ": " << tempRaw;
++            continue;
++        }
++
++        const std::string id = zoneId(dir);
++        samples.push_back(makeSample(id, type.empty() ? id : type, milliCelsius / 1000.0f,
++                                     /*simulated=*/false));
++    }
++
++    globfree(&globResult);
++    return samples;
++}
++
++std::vector<MetricSample> DeviceHealth::simulatedSamples() {
++    return {
++            makeSample("thermal.cpu", "CPU", 42.0f, /*simulated=*/true),
++            makeSample("thermal.gpu", "GPU", 43.0f, /*simulated=*/true),
++            makeSample("thermal.battery", "Battery", 38.0f, /*simulated=*/true),
++    };
++}
++
++ndk::ScopedAStatus DeviceHealth::getMetrics(std::vector<MetricSample>* out) {
++    auto samples = readThermalZones();
++    if (samples.empty()) {
++        LOG(WARNING) << "No usable thermal zones found; returning simulated samples";
++        samples = simulatedSamples();
++    }
++    *out = std::move(samples);
++    return ndk::ScopedAStatus::ok();
++}
++
++}  // namespace aidl::android::hardware::devicehealth
+diff --git a/devicehealth/aidl/default/DeviceHealth.h b/devicehealth/aidl/default/DeviceHealth.h
+new file mode 100644
+index 0000000..b2d77f6
+--- /dev/null
++++ b/devicehealth/aidl/default/DeviceHealth.h
+@@ -0,0 +1,34 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#pragma once
++
++#include <aidl/android/hardware/devicehealth/BnDeviceHealth.h>
++
++#include <vector>
++
++namespace aidl::android::hardware::devicehealth {
++
++class DeviceHealth : public BnDeviceHealth {
++  public:
++    ndk::ScopedAStatus getMetrics(std::vector<MetricSample>* out) override;
++
++  private:
++    static std::vector<MetricSample> readThermalZones();
++    static std::vector<MetricSample> simulatedSamples();
++};
++
++}  // namespace aidl::android::hardware::devicehealth
+diff --git a/devicehealth/aidl/default/devicehealth-default.rc b/devicehealth/aidl/default/devicehealth-default.rc
+new file mode 100644
+index 0000000..06b6954
+--- /dev/null
++++ b/devicehealth/aidl/default/devicehealth-default.rc
+@@ -0,0 +1,5 @@
++service vendor.devicehealth-default /vendor/bin/hw/com.android.hardware.devicehealth
++    class hal
++    user system
++    group system
++    shutdown critical
+diff --git a/devicehealth/aidl/default/devicehealth-default.xml b/devicehealth/aidl/default/devicehealth-default.xml
+new file mode 100644
+index 0000000..5392b1f
+--- /dev/null
++++ b/devicehealth/aidl/default/devicehealth-default.xml
+@@ -0,0 +1,7 @@
++<manifest version="1.0" type="device">
++    <hal format="aidl">
++        <name>android.hardware.devicehealth</name>
++        <version>1</version>
++        <fqname>IDeviceHealth/default</fqname>
++    </hal>
++</manifest>
+diff --git a/devicehealth/aidl/default/main.cpp b/devicehealth/aidl/default/main.cpp
+new file mode 100644
+index 0000000..8c2abfc
+--- /dev/null
++++ b/devicehealth/aidl/default/main.cpp
+@@ -0,0 +1,44 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include "DeviceHealth.h"
++
++#include <android-base/logging.h>
++#include <android/binder_manager.h>
++#include <android/binder_process.h>
++
++#include <cstdlib>
++#include <string>
++
++using aidl::android::hardware::devicehealth::BnDeviceHealth;
++using aidl::android::hardware::devicehealth::DeviceHealth;
++
++int main() {
++    ABinderProcess_setThreadPoolMaxThreadCount(0);
++
++    auto service = ndk::SharedRefBase::make<DeviceHealth>();
++    const std::string instance = BnDeviceHealth::makeServiceName("default");
++    const binder_status_t status =
++            AServiceManager_addService(service->asBinder().get(), instance.c_str());
++    if (status != STATUS_OK) {
++        LOG(ERROR) << "Failed to register " << instance << ": " << status;
++        return EXIT_FAILURE;
++    }
++    LOG(INFO) << "Registered " << instance;
++
++    ABinderProcess_joinThreadPool();
++    return EXIT_FAILURE;
++}

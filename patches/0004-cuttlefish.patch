@@ -1,0 +1,188 @@
+diff --git a/host/commands/assemble_cvd/flags_defaults.h b/host/commands/assemble_cvd/flags_defaults.h
+index 153007d..d52aaa6 100644
+--- a/host/commands/assemble_cvd/flags_defaults.h
++++ b/host/commands/assemble_cvd/flags_defaults.h
+@@ -25,8 +25,9 @@
+ #define CF_DEFAULTS_INSTANCE_NUMS CF_DEFAULTS_DYNAMIC_STRING
+ #define CF_DEFAULTS_BASE_INSTANCE_NUM cuttlefish::GetInstance()
+ #define CF_DEFAULTS_ASSEMBLY_DIR \
+-  (StringFromEnv("HOME", ".") + "/cuttlefish_assembly")
+-#define CF_DEFAULTS_INSTANCE_DIR (StringFromEnv("HOME", ".") + "/cuttlefish")
++  (cuttlefish::GetCuttlefishRootDir() + "/assembly")
++#define CF_DEFAULTS_INSTANCE_DIR \
++  (cuttlefish::GetCuttlefishRootDir() + "/runtime")
+ 
+ #define CF_DEFAULTS_SYSTEM_IMAGE_DIR CF_DEFAULTS_DYNAMIC_STRING
+ 
+diff --git a/host/libs/config/config_utils.cpp b/host/libs/config/config_utils.cpp
+index 0ee9911..4c43ca8 100644
+--- a/host/libs/config/config_utils.cpp
++++ b/host/libs/config/config_utils.cpp
+@@ -81,8 +81,13 @@ int GetVsockServerPort(const int base,
+     return base + (vsock_guest_cid - 3);
+ }
+ 
++std::string GetCuttlefishRootDir() {
++  return StringFromEnv("CUTTLEFISH_WORKSPACE",
++                       "/home/zqy/work/WorkSpace/cuttlefish");
++}
++
+ std::string GetGlobalConfigFileLink() {
+-  return StringFromEnv("HOME", ".") + "/.cuttlefish_config.json";
++  return GetCuttlefishRootDir() + "/.cuttlefish_config.json";
+ }
+ 
+ std::string ForCurrentInstance(const char* prefix) {
+diff --git a/host/libs/config/config_utils.h b/host/libs/config/config_utils.h
+index 1f9ca28..74d1403 100644
+--- a/host/libs/config/config_utils.h
++++ b/host/libs/config/config_utils.h
+@@ -32,6 +32,10 @@ int GetDefaultVsockCid();
+ int GetVsockServerPort(const int base,
+                        const int vsock_guest_cid);
+ 
++// Returns the root directory for all Cuttlefish runtime data. Overridable with
++// CUTTLEFISH_WORKSPACE; defaults to the workspace copy used by this tree.
++std::string GetCuttlefishRootDir();
++
+ // Returns a path where the launcher puts a link to the config file which makes
+ // it easily discoverable regardless of what vm manager is in use
+ std::string GetGlobalConfigFileLink();
+diff --git a/shared/devicehealth/BoardConfig.mk b/shared/devicehealth/BoardConfig.mk
+new file mode 100644
+index 0000000..6c52b64
+--- /dev/null
++++ b/shared/devicehealth/BoardConfig.mk
+@@ -0,0 +1,17 @@
++#
++# Copyright (C) 2026 The Android Open Source Project
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++#
++
++BOARD_VENDOR_SEPOLICY_DIRS += device/google/cuttlefish/shared/devicehealth/sepolicy/vendor
+diff --git a/shared/devicehealth/device_vendor.mk b/shared/devicehealth/device_vendor.mk
+new file mode 100644
+index 0000000..e32623a
+--- /dev/null
++++ b/shared/devicehealth/device_vendor.mk
+@@ -0,0 +1,19 @@
++#
++# Copyright (C) 2026 The Android Open Source Project
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++#
++
++PRODUCT_PACKAGES += com.android.hardware.devicehealth
++PRODUCT_PACKAGES += com.android.devicehealth
++PRODUCT_PACKAGES += DeviceHealthCenter
+diff --git a/shared/devicehealth/sepolicy/vendor/file_contexts b/shared/devicehealth/sepolicy/vendor/file_contexts
+new file mode 100644
+index 0000000..0af27d1
+--- /dev/null
++++ b/shared/devicehealth/sepolicy/vendor/file_contexts
+@@ -0,0 +1 @@
++/(vendor|system/vendor)/bin/hw/com\.android\.hardware\.devicehealth u:object_r:hal_devicehealth_default_exec:s0
+diff --git a/shared/devicehealth/sepolicy/vendor/hal_devicehealth_default.te b/shared/devicehealth/sepolicy/vendor/hal_devicehealth_default.te
+new file mode 100644
+index 0000000..b7c2a3c
+--- /dev/null
++++ b/shared/devicehealth/sepolicy/vendor/hal_devicehealth_default.te
+@@ -0,0 +1,24 @@
++# Copyright (C) 2026 The Android Open Source Project
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++type hal_devicehealth_default, domain;
++type hal_devicehealth_default_exec, exec_type, vendor_file_type, file_type;
++
++init_daemon_domain(hal_devicehealth_default);
++hal_server_domain(hal_devicehealth_default, hal_devicehealth);
++
++# Read thermal zone type and temperature files.
++# /sys/class/thermal itself is labeled sysfs; the zone entries are sysfs_thermal.
++allow hal_devicehealth_default sysfs:dir r_dir_perms;
++r_dir_file(hal_devicehealth_default, sysfs_thermal)
+diff --git a/shared/devicehealth/sepolicy/vendor/service.te b/shared/devicehealth/sepolicy/vendor/service.te
+new file mode 100644
+index 0000000..3812a1f
+--- /dev/null
++++ b/shared/devicehealth/sepolicy/vendor/service.te
+@@ -0,0 +1,16 @@
++# Copyright (C) 2026 The Android Open Source Project
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++type hal_devicehealth_service, hal_service_type, protected_service, service_manager_type;
++hal_attribute_service(hal_devicehealth, hal_devicehealth_service);
+diff --git a/shared/devicehealth/sepolicy/vendor/service_contexts b/shared/devicehealth/sepolicy/vendor/service_contexts
+new file mode 100644
+index 0000000..146ccc5
+--- /dev/null
++++ b/shared/devicehealth/sepolicy/vendor/service_contexts
+@@ -0,0 +1 @@
++android.hardware.devicehealth.IDeviceHealth/default u:object_r:hal_devicehealth_service:s0
+diff --git a/shared/phone/device_vendor.mk b/shared/phone/device_vendor.mk
+index 678c640..28ed25c 100644
+--- a/shared/phone/device_vendor.mk
++++ b/shared/phone/device_vendor.mk
+@@ -28,6 +28,7 @@ $(call inherit-product, device/google/cuttlefish/shared/biometrics_face/device_v
+ $(call inherit-product, device/google/cuttlefish/shared/biometrics_fingerprint/device_vendor.mk)
+ $(call inherit-product, device/google/cuttlefish/shared/bluetooth/device_vendor.mk)
+ $(call inherit-product, device/google/cuttlefish/shared/consumerir/device_vendor.mk)
++$(call inherit-product, device/google/cuttlefish/shared/devicehealth/device_vendor.mk)
+ $(call inherit-product, device/google/cuttlefish/shared/gnss/device_vendor.mk)
+ $(call inherit-product, device/google/cuttlefish/shared/graphics/device_vendor.mk)
+ $(call inherit-product, device/google/cuttlefish/shared/identity/device_vendor.mk)
+diff --git a/vsoc_x86_64/BoardConfig.mk b/vsoc_x86_64/BoardConfig.mk
+index cb3eab2..8264d8f 100644
+--- a/vsoc_x86_64/BoardConfig.mk
++++ b/vsoc_x86_64/BoardConfig.mk
+@@ -40,6 +40,7 @@ TARGET_NATIVE_BRIDGE_2ND_ABI := armeabi-v7a armeabi
+ -include device/google/cuttlefish/shared/BoardConfig.mk
+ -include device/google/cuttlefish/shared/bluetooth/BoardConfig.mk
+ -include device/google/cuttlefish/shared/camera/BoardConfig.mk
++-include device/google/cuttlefish/shared/devicehealth/BoardConfig.mk
+ -include device/google/cuttlefish/shared/gnss/BoardConfig.mk
+ -include device/google/cuttlefish/shared/graphics/BoardConfig.mk
+ -include device/google/cuttlefish/shared/identity/BoardConfig.mk

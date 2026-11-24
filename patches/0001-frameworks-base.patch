@@ -1,0 +1,3631 @@
+diff --git a/core/api/system-current.txt b/core/api/system-current.txt
+index 5aa89b98..c8d02dbe 100644
+--- a/core/api/system-current.txt
++++ b/core/api/system-current.txt
+@@ -196,6 +196,7 @@ package android {
+     field public static final String MANAGE_DEBUGGING = "android.permission.MANAGE_DEBUGGING";
+     field public static final String MANAGE_DEFAULT_APPLICATIONS = "android.permission.MANAGE_DEFAULT_APPLICATIONS";
+     field public static final String MANAGE_DEVICE_ADMINS = "android.permission.MANAGE_DEVICE_ADMINS";
++    field public static final String MANAGE_DEVICE_HEALTH = "android.permission.MANAGE_DEVICE_HEALTH";
+     field public static final String MANAGE_DEVICE_POLICY_APP_EXEMPTIONS = "android.permission.MANAGE_DEVICE_POLICY_APP_EXEMPTIONS";
+     field @FlaggedApi("android.app.admin.flags.security_log_v2_enabled") public static final String MANAGE_DEVICE_POLICY_AUDIT_LOGGING = "android.permission.MANAGE_DEVICE_POLICY_AUDIT_LOGGING";
+     field @FlaggedApi("android.app.admin.flags.device_theft_api_enabled") public static final String MANAGE_DEVICE_POLICY_THEFT_DETECTION = "android.permission.MANAGE_DEVICE_POLICY_THEFT_DETECTION";
+@@ -3752,6 +3753,7 @@ package android.content {
+     field public static final String CLOUDSEARCH_SERVICE = "cloudsearch";
+     field public static final String CONTENT_SUGGESTIONS_SERVICE = "content_suggestions";
+     field public static final String CONTEXTHUB_SERVICE = "contexthub";
++    field public static final String DEVICE_HEALTH_SERVICE = "devicehealth";
+     field @FlaggedApi("android.permission.flags.enhanced_confirmation_mode_apis_enabled") public static final String ECM_ENHANCED_CONFIRMATION_SERVICE = "ecm_enhanced_confirmation";
+     field public static final String ETHERNET_SERVICE = "ethernet";
+     field public static final String EUICC_CARD_SERVICE = "euicc_card";
+@@ -4732,6 +4734,88 @@ package android.debug {
+ 
+ }
+ 
++package android.devicehealth {
++
++  public final class DeviceHealthDaemonInfo implements android.os.Parcelable {
++    ctor public DeviceHealthDaemonInfo(int, int, int, @NonNull String, int);
++    method public int describeContents();
++    method public int getCapabilities();
++    method public int getCompatibility();
++    method public int getInterfaceVersion();
++    method @NonNull public String getLastError();
++    method public int getPid();
++    method public void writeToParcel(@NonNull android.os.Parcel, int);
++    field public static final int COMPATIBILITY_NEWER = 2; // 0x2
++    field public static final int COMPATIBILITY_OK = 0; // 0x0
++    field public static final int COMPATIBILITY_TOO_OLD = 1; // 0x1
++    field public static final int COMPATIBILITY_UNAVAILABLE = 3; // 0x3
++    field @NonNull public static final android.os.Parcelable.Creator<android.devicehealth.DeviceHealthDaemonInfo> CREATOR;
++  }
++
++  public final class DeviceHealthEvent implements android.os.Parcelable {
++    ctor public DeviceHealthEvent(int, @NonNull String, int, int, float, float, long, @NonNull String);
++    method public int describeContents();
++    method public int getEventId();
++    method public int getFromSeverity();
++    method @NonNull public String getMessage();
++    method @NonNull public String getMetricId();
++    method public float getThreshold();
++    method public long getTimestampMs();
++    method public int getToSeverity();
++    method public float getValue();
++    method public void writeToParcel(@NonNull android.os.Parcel, int);
++    field @NonNull public static final android.os.Parcelable.Creator<android.devicehealth.DeviceHealthEvent> CREATOR;
++  }
++
++  public interface DeviceHealthListener {
++    method public void onEvent(@NonNull android.devicehealth.DeviceHealthEvent);
++    method public void onSnapshotChanged(@NonNull android.devicehealth.DeviceHealthSnapshot);
++  }
++
++  public final class DeviceHealthManager {
++    method @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_HEALTH) public void clearEvents();
++    method @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_HEALTH) public void clearSimulated();
++    method @NonNull @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_HEALTH) public android.devicehealth.DeviceHealthDaemonInfo getDaemonInfo();
++    method @NonNull @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_HEALTH) public java.util.List<android.devicehealth.DeviceHealthEvent> getRecentEvents(int);
++    method @NonNull @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_HEALTH) public android.devicehealth.DeviceHealthSnapshot getSnapshot();
++    method @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_HEALTH) public void registerListener(@NonNull java.util.concurrent.Executor, @NonNull android.devicehealth.DeviceHealthListener);
++    method @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_HEALTH) public void simulateCritical(@NonNull String);
++    method @RequiresPermission(android.Manifest.permission.MANAGE_DEVICE_HEALTH) public void unregisterListener(@NonNull android.devicehealth.DeviceHealthListener);
++  }
++
++  public final class DeviceHealthMetric implements android.os.Parcelable {
++    ctor public DeviceHealthMetric(@NonNull String, @NonNull String, float, @NonNull String, long, boolean);
++    method public int describeContents();
++    method @NonNull public String getId();
++    method @NonNull public String getName();
++    method public long getTimestampMs();
++    method @NonNull public String getUnit();
++    method public float getValue();
++    method public boolean isSimulated();
++    method public void writeToParcel(@NonNull android.os.Parcel, int);
++    field @NonNull public static final android.os.Parcelable.Creator<android.devicehealth.DeviceHealthMetric> CREATOR;
++  }
++
++  public final class DeviceHealthSnapshot implements android.os.Parcelable {
++    ctor public DeviceHealthSnapshot(@NonNull java.util.List<android.devicehealth.DeviceHealthMetric>, int, long, boolean, int, int);
++    method public int describeContents();
++    method public int getCapabilities();
++    method public int getDaemonVersion();
++    method @NonNull public java.util.List<android.devicehealth.DeviceHealthMetric> getMetrics();
++    method public int getOverallSeverity();
++    method public long getTimestampMs();
++    method public boolean isStale();
++    method public void writeToParcel(@NonNull android.os.Parcel, int);
++    field @NonNull public static final android.os.Parcelable.Creator<android.devicehealth.DeviceHealthSnapshot> CREATOR;
++    field public static final int SEVERITY_CRITICAL = 2; // 0x2
++    field public static final int SEVERITY_NORMAL = 0; // 0x0
++    field public static final int SEVERITY_STALE = 3; // 0x3
++    field public static final int SEVERITY_UNKNOWN = 4; // 0x4
++    field public static final int SEVERITY_WARNING = 1; // 0x1
++  }
++
++}
++
+ package android.graphics.fonts {
+ 
+   public final class FontFamilyUpdateRequest {
+diff --git a/core/api/system-lint-baseline.txt b/core/api/system-lint-baseline.txt
+index 11c5b96f..0352940f 100644
+--- a/core/api/system-lint-baseline.txt
++++ b/core/api/system-lint-baseline.txt
+@@ -541,6 +541,12 @@ ListenerLast: android.telephony.satellite.SatelliteManager#stopSatelliteTransmis
+     Listeners should always be at end of argument list (method `stopSatelliteTransmissionUpdates`)
+ 
+ 
++MethodNameUnits: android.devicehealth.DeviceHealthEvent#getTimestampMs():
++    Expected method name units to be `Millis or Micros`, was `Ms` in `getTimestampMs`
++MethodNameUnits: android.devicehealth.DeviceHealthMetric#getTimestampMs():
++    Expected method name units to be `Millis or Micros`, was `Ms` in `getTimestampMs`
++MethodNameUnits: android.devicehealth.DeviceHealthSnapshot#getTimestampMs():
++    Expected method name units to be `Millis or Micros`, was `Ms` in `getTimestampMs`
+ MethodNameUnits: android.hardware.camera2.extension.CameraOutputSurface#getColorSpace():
+     Expected method name units to be `Bytes`, was `Space` in `getColorSpace`
+ 
+@@ -1877,6 +1883,10 @@ SdkConstant: android.telephony.TelephonyManager#ACTION_SHOW_NOTICE_ECM_BLOCK_OTH
+     Field 'ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS' is missing @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+ 
+ 
++ServiceName: android.content.Context#DEVICE_HEALTH_SERVICE:
++    Inconsistent service value; expected `device_health`, was `devicehealth` (Note: Do not change the name of already released services, which will break tools using `adb shell dumpsys`. Instead add `@SuppressLint("ServiceName"))`
++
++
+ Todo: android.Manifest.permission#DOMAIN_VERIFICATION_AGENT:
+     Documentation mentions 'TODO'
+ Todo: android.Manifest.permission#INSTALL_EXISTING_PACKAGES:
+@@ -1927,6 +1937,8 @@ UnflaggedApi: android.Manifest.permission#KEYPHRASE_ENROLLMENT_APPLICATION:
+     New API must be flagged with @FlaggedApi: field android.Manifest.permission.KEYPHRASE_ENROLLMENT_APPLICATION
+ UnflaggedApi: android.Manifest.permission#LAUNCH_PERMISSION_SETTINGS:
+     New API must be flagged with @FlaggedApi: field android.Manifest.permission.LAUNCH_PERMISSION_SETTINGS
++UnflaggedApi: android.Manifest.permission#MANAGE_DEVICE_HEALTH:
++    New API must be flagged with @FlaggedApi: field android.Manifest.permission.MANAGE_DEVICE_HEALTH
+ UnflaggedApi: android.Manifest.permission#MANAGE_VOICE_KEYPHRASES:
+     New API must be flagged with @FlaggedApi: field android.Manifest.permission.MANAGE_VOICE_KEYPHRASES
+ UnflaggedApi: android.Manifest.permission#READ_INSTALLED_SESSION_PATHS:
+@@ -1943,6 +1955,8 @@ UnflaggedApi: android.app.AppOpsManager#OPSTR_RECEIVE_SANDBOX_TRIGGER_AUDIO:
+     New API must be flagged with @FlaggedApi: field android.app.AppOpsManager.OPSTR_RECEIVE_SANDBOX_TRIGGER_AUDIO
+ UnflaggedApi: android.companion.virtual.VirtualDeviceManager.VirtualDevice#getPersistentDeviceId():
+     New API must be flagged with @FlaggedApi: method android.companion.virtual.VirtualDeviceManager.VirtualDevice.getPersistentDeviceId()
++UnflaggedApi: android.content.Context#DEVICE_HEALTH_SERVICE:
++    New API must be flagged with @FlaggedApi: field android.content.Context.DEVICE_HEALTH_SERVICE
+ UnflaggedApi: android.content.Context#THREAD_NETWORK_SERVICE:
+     New API must be flagged with @FlaggedApi: field android.content.Context.THREAD_NETWORK_SERVICE
+ UnflaggedApi: android.content.Intent#ACTION_UNARCHIVE_PACKAGE:
+@@ -1957,6 +1971,112 @@ UnflaggedApi: android.content.pm.PackageManager#EXTRA_REQUEST_PERMISSIONS_DEVICE
+     New API must be flagged with @FlaggedApi: field android.content.pm.PackageManager.EXTRA_REQUEST_PERMISSIONS_DEVICE_ID
+ UnflaggedApi: android.content.pm.PackageManager#MATCH_ARCHIVED_PACKAGES:
+     New API must be flagged with @FlaggedApi: field android.content.pm.PackageManager.MATCH_ARCHIVED_PACKAGES
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo:
++    New API must be flagged with @FlaggedApi: class android.devicehealth.DeviceHealthDaemonInfo
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo#CREATOR:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthDaemonInfo.CREATOR
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo#DeviceHealthDaemonInfo(int, int, int, String):
++    New API must be flagged with @FlaggedApi: constructor android.devicehealth.DeviceHealthDaemonInfo(int,int,int,String)
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo#describeContents():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthDaemonInfo.describeContents()
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo#getCapabilities():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthDaemonInfo.getCapabilities()
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo#getInterfaceVersion():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthDaemonInfo.getInterfaceVersion()
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo#getLastError():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthDaemonInfo.getLastError()
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo#getPid():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthDaemonInfo.getPid()
++UnflaggedApi: android.devicehealth.DeviceHealthDaemonInfo#writeToParcel(android.os.Parcel, int):
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthDaemonInfo.writeToParcel(android.os.Parcel,int)
++UnflaggedApi: android.devicehealth.DeviceHealthEvent:
++    New API must be flagged with @FlaggedApi: class android.devicehealth.DeviceHealthEvent
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#CREATOR:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthEvent.CREATOR
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#DeviceHealthEvent(int, String, int, int, float, float, long, String):
++    New API must be flagged with @FlaggedApi: constructor android.devicehealth.DeviceHealthEvent(int,String,int,int,float,float,long,String)
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#describeContents():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.describeContents()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#getEventId():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.getEventId()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#getFromSeverity():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.getFromSeverity()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#getMessage():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.getMessage()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#getMetricId():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.getMetricId()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#getThreshold():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.getThreshold()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#getTimestampMs():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.getTimestampMs()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#getToSeverity():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.getToSeverity()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#getValue():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.getValue()
++UnflaggedApi: android.devicehealth.DeviceHealthEvent#writeToParcel(android.os.Parcel, int):
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthEvent.writeToParcel(android.os.Parcel,int)
++UnflaggedApi: android.devicehealth.DeviceHealthManager:
++    New API must be flagged with @FlaggedApi: class android.devicehealth.DeviceHealthManager
++UnflaggedApi: android.devicehealth.DeviceHealthManager#getDaemonInfo():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthManager.getDaemonInfo()
++UnflaggedApi: android.devicehealth.DeviceHealthManager#getRecentEvents(int):
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthManager.getRecentEvents(int)
++UnflaggedApi: android.devicehealth.DeviceHealthManager#getSnapshot():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthManager.getSnapshot()
++UnflaggedApi: android.devicehealth.DeviceHealthMetric:
++    New API must be flagged with @FlaggedApi: class android.devicehealth.DeviceHealthMetric
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#CREATOR:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthMetric.CREATOR
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#DeviceHealthMetric(String, String, float, String, long, boolean):
++    New API must be flagged with @FlaggedApi: constructor android.devicehealth.DeviceHealthMetric(String,String,float,String,long,boolean)
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#describeContents():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthMetric.describeContents()
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#getId():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthMetric.getId()
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#getName():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthMetric.getName()
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#getTimestampMs():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthMetric.getTimestampMs()
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#getUnit():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthMetric.getUnit()
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#getValue():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthMetric.getValue()
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#isSimulated():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthMetric.isSimulated()
++UnflaggedApi: android.devicehealth.DeviceHealthMetric#writeToParcel(android.os.Parcel, int):
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthMetric.writeToParcel(android.os.Parcel,int)
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot:
++    New API must be flagged with @FlaggedApi: class android.devicehealth.DeviceHealthSnapshot
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#CREATOR:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthSnapshot.CREATOR
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#DeviceHealthSnapshot(java.util.List<android.devicehealth.DeviceHealthMetric>, int, long, boolean, int, int):
++    New API must be flagged with @FlaggedApi: constructor android.devicehealth.DeviceHealthSnapshot(java.util.List<android.devicehealth.DeviceHealthMetric>,int,long,boolean,int,int)
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#SEVERITY_CRITICAL:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthSnapshot.SEVERITY_CRITICAL
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#SEVERITY_NORMAL:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthSnapshot.SEVERITY_NORMAL
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#SEVERITY_STALE:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthSnapshot.SEVERITY_STALE
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#SEVERITY_UNKNOWN:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthSnapshot.SEVERITY_UNKNOWN
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#SEVERITY_WARNING:
++    New API must be flagged with @FlaggedApi: field android.devicehealth.DeviceHealthSnapshot.SEVERITY_WARNING
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#describeContents():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthSnapshot.describeContents()
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#getCapabilities():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthSnapshot.getCapabilities()
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#getDaemonVersion():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthSnapshot.getDaemonVersion()
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#getMetrics():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthSnapshot.getMetrics()
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#getOverallSeverity():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthSnapshot.getOverallSeverity()
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#getTimestampMs():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthSnapshot.getTimestampMs()
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#isStale():
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthSnapshot.isStale()
++UnflaggedApi: android.devicehealth.DeviceHealthSnapshot#writeToParcel(android.os.Parcel, int):
++    New API must be flagged with @FlaggedApi: method android.devicehealth.DeviceHealthSnapshot.writeToParcel(android.os.Parcel,int)
+ UnflaggedApi: android.media.audiopolicy.AudioMix#CREATOR:
+     New API must be flagged with @FlaggedApi: field android.media.audiopolicy.AudioMix.CREATOR
+ UnflaggedApi: android.media.audiopolicy.AudioMix#describeContents():
+diff --git a/core/java/android/app/SystemServiceRegistry.java b/core/java/android/app/SystemServiceRegistry.java
+index d01626e1..54288b44 100644
+--- a/core/java/android/app/SystemServiceRegistry.java
++++ b/core/java/android/app/SystemServiceRegistry.java
+@@ -85,6 +85,8 @@ import android.content.pm.verify.domain.DomainVerificationManager;
+ import android.content.pm.verify.domain.IDomainVerificationManager;
+ import android.content.res.Resources;
+ import android.content.rollback.RollbackManagerFrameworkInitializer;
++import android.devicehealth.DeviceHealthManager;
++import android.devicehealth.IDeviceHealthManager;
+ import android.credentials.CredentialManager;
+ import android.credentials.ICredentialManager;
+ import android.debug.AdbManager;
+@@ -485,6 +487,16 @@ public final class SystemServiceRegistry {
+                 return new BatteryManager(ctx, stats, registrar);
+             }});
+ 
++        registerService(Context.DEVICE_HEALTH_SERVICE, DeviceHealthManager.class,
++                new CachedServiceFetcher<DeviceHealthManager>() {
++            @Override
++            public DeviceHealthManager createService(ContextImpl ctx)
++                    throws ServiceNotFoundException {
++                IDeviceHealthManager service = IDeviceHealthManager.Stub.asInterface(
++                        ServiceManager.getServiceOrThrow(Context.DEVICE_HEALTH_SERVICE));
++                return new DeviceHealthManager(service);
++            }});
++
+         registerService(Context.DROPBOX_SERVICE, DropBoxManager.class,
+                 new CachedServiceFetcher<DropBoxManager>() {
+             @Override
+diff --git a/core/java/android/content/Context.java b/core/java/android/content/Context.java
+index c7e5d88c..ab5518ce 100644
+--- a/core/java/android/content/Context.java
++++ b/core/java/android/content/Context.java
+@@ -5623,6 +5623,15 @@ public abstract class Context {
+      */
+     public static final String BATTERY_SERVICE = "batterymanager";
+ 
++    /**
++     * Use with {@link #getSystemService(String)} to retrieve a
++     * {@link android.devicehealth.DeviceHealthManager} for querying device health.
++     *
++     * @hide
++     */
++    @SystemApi
++    public static final String DEVICE_HEALTH_SERVICE = "devicehealth";
++
+     /**
+      * Use with {@link #getSystemService(String)} to retrieve a
+      * {@link android.nfc.NfcManager} for using NFC.
+diff --git a/core/java/android/devicehealth/DeviceHealthDaemonInfo.aidl b/core/java/android/devicehealth/DeviceHealthDaemonInfo.aidl
+new file mode 100644
+index 00000000..a8fb6ef9
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthDaemonInfo.aidl
+@@ -0,0 +1,19 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++parcelable DeviceHealthDaemonInfo;
+diff --git a/core/java/android/devicehealth/DeviceHealthDaemonInfo.java b/core/java/android/devicehealth/DeviceHealthDaemonInfo.java
+new file mode 100644
+index 00000000..0f8c2930
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthDaemonInfo.java
+@@ -0,0 +1,121 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++import android.annotation.NonNull;
++import android.annotation.SuppressLint;
++import android.annotation.SystemApi;
++import android.os.Parcel;
++import android.os.Parcelable;
++
++/**
++ * Diagnostic information about the device health daemon.
++ *
++ * @hide
++ */
++@SystemApi
++@SuppressLint("UnflaggedApi")
++public final class DeviceHealthDaemonInfo implements Parcelable {
++    /** The daemon interface version is supported by this framework build. */
++    @SuppressLint("UnflaggedApi")
++    public static final int COMPATIBILITY_OK = 0;
++    /** The daemon interface version is older than the minimum supported version. */
++    @SuppressLint("UnflaggedApi")
++    public static final int COMPATIBILITY_TOO_OLD = 1;
++    /** The daemon is newer than the versions this framework build was tested with. */
++    @SuppressLint("UnflaggedApi")
++    public static final int COMPATIBILITY_NEWER = 2;
++    /** The daemon is not registered, so compatibility cannot be evaluated. */
++    @SuppressLint("UnflaggedApi")
++    public static final int COMPATIBILITY_UNAVAILABLE = 3;
++
++    private final int mInterfaceVersion;
++    private final int mCapabilities;
++    private final int mPid;
++    private final String mLastError;
++    private final int mCompatibility;
++
++    @SuppressLint("UnflaggedApi")
++    public DeviceHealthDaemonInfo(int interfaceVersion, int capabilities, int pid,
++            @NonNull String lastError, int compatibility) {
++        mInterfaceVersion = interfaceVersion;
++        mCapabilities = capabilities;
++        mPid = pid;
++        mLastError = lastError;
++        mCompatibility = compatibility;
++    }
++
++    private DeviceHealthDaemonInfo(Parcel in) {
++        mInterfaceVersion = in.readInt();
++        mCapabilities = in.readInt();
++        mPid = in.readInt();
++        mLastError = in.readString();
++        mCompatibility = in.readInt();
++    }
++
++    public static final @NonNull Creator<DeviceHealthDaemonInfo> CREATOR =
++            new Creator<DeviceHealthDaemonInfo>() {
++                @Override
++                public DeviceHealthDaemonInfo createFromParcel(Parcel in) {
++                    return new DeviceHealthDaemonInfo(in);
++                }
++
++                @Override
++                public DeviceHealthDaemonInfo[] newArray(int size) {
++                    return new DeviceHealthDaemonInfo[size];
++                }
++            };
++
++    @Override
++    public int describeContents() {
++        return 0;
++    }
++
++    @Override
++    public void writeToParcel(@NonNull Parcel dest, int flags) {
++        dest.writeInt(mInterfaceVersion);
++        dest.writeInt(mCapabilities);
++        dest.writeInt(mPid);
++        dest.writeString(mLastError);
++        dest.writeInt(mCompatibility);
++    }
++
++    public int getInterfaceVersion() {
++        return mInterfaceVersion;
++    }
++
++    public int getCapabilities() {
++        return mCapabilities;
++    }
++
++    public int getPid() {
++        return mPid;
++    }
++
++    public @NonNull String getLastError() {
++        return mLastError;
++    }
++
++    /**
++     * Returns one of the {@code COMPATIBILITY_*} constants describing whether this framework
++     * build supports the daemon's interface version.
++     */
++    @SuppressLint("UnflaggedApi")
++    public int getCompatibility() {
++        return mCompatibility;
++    }
++}
+diff --git a/core/java/android/devicehealth/DeviceHealthEvent.aidl b/core/java/android/devicehealth/DeviceHealthEvent.aidl
+new file mode 100644
+index 00000000..a1641525
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthEvent.aidl
+@@ -0,0 +1,19 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++parcelable DeviceHealthEvent;
+diff --git a/core/java/android/devicehealth/DeviceHealthEvent.java b/core/java/android/devicehealth/DeviceHealthEvent.java
+new file mode 100644
+index 00000000..45ed42cb
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthEvent.java
+@@ -0,0 +1,124 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++import android.annotation.NonNull;
++import android.annotation.SystemApi;
++import android.os.Parcel;
++import android.os.Parcelable;
++
++/**
++ * A health state transition event.
++ *
++ * @hide
++ */
++@SystemApi
++public final class DeviceHealthEvent implements Parcelable {
++    private final int mEventId;
++    private final String mMetricId;
++    private final int mFromSeverity;
++    private final int mToSeverity;
++    private final float mValue;
++    private final float mThreshold;
++    private final long mTimestampMs;
++    private final String mMessage;
++
++    public DeviceHealthEvent(int eventId, @NonNull String metricId, int fromSeverity,
++            int toSeverity, float value, float threshold, long timestampMs, @NonNull String message) {
++        mEventId = eventId;
++        mMetricId = metricId;
++        mFromSeverity = fromSeverity;
++        mToSeverity = toSeverity;
++        mValue = value;
++        mThreshold = threshold;
++        mTimestampMs = timestampMs;
++        mMessage = message;
++    }
++
++    private DeviceHealthEvent(Parcel in) {
++        mEventId = in.readInt();
++        mMetricId = in.readString();
++        mFromSeverity = in.readInt();
++        mToSeverity = in.readInt();
++        mValue = in.readFloat();
++        mThreshold = in.readFloat();
++        mTimestampMs = in.readLong();
++        mMessage = in.readString();
++    }
++
++    public static final @NonNull Creator<DeviceHealthEvent> CREATOR =
++            new Creator<DeviceHealthEvent>() {
++                @Override
++                public DeviceHealthEvent createFromParcel(Parcel in) {
++                    return new DeviceHealthEvent(in);
++                }
++
++                @Override
++                public DeviceHealthEvent[] newArray(int size) {
++                    return new DeviceHealthEvent[size];
++                }
++            };
++
++    @Override
++    public int describeContents() {
++        return 0;
++    }
++
++    @Override
++    public void writeToParcel(@NonNull Parcel dest, int flags) {
++        dest.writeInt(mEventId);
++        dest.writeString(mMetricId);
++        dest.writeInt(mFromSeverity);
++        dest.writeInt(mToSeverity);
++        dest.writeFloat(mValue);
++        dest.writeFloat(mThreshold);
++        dest.writeLong(mTimestampMs);
++        dest.writeString(mMessage);
++    }
++
++    public int getEventId() {
++        return mEventId;
++    }
++
++    public @NonNull String getMetricId() {
++        return mMetricId;
++    }
++
++    public int getFromSeverity() {
++        return mFromSeverity;
++    }
++
++    public int getToSeverity() {
++        return mToSeverity;
++    }
++
++    public float getValue() {
++        return mValue;
++    }
++
++    public float getThreshold() {
++        return mThreshold;
++    }
++
++    public long getTimestampMs() {
++        return mTimestampMs;
++    }
++
++    public @NonNull String getMessage() {
++        return mMessage;
++    }
++}
+diff --git a/core/java/android/devicehealth/DeviceHealthListener.java b/core/java/android/devicehealth/DeviceHealthListener.java
+new file mode 100644
+index 00000000..74bb0357
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthListener.java
+@@ -0,0 +1,46 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++import android.annotation.NonNull;
++import android.annotation.SuppressLint;
++import android.annotation.SystemApi;
++
++/**
++ * Receives device health updates pushed by {@link DeviceHealthManager}.
++ *
++ * <p>Callbacks are delivered on the {@link java.util.concurrent.Executor} passed to
++ * {@link DeviceHealthManager#registerListener}. Listener implementations must not block,
++ * because callbacks are serialized by the framework.
++ *
++ * @hide
++ */
++@SystemApi
++@SuppressLint("UnflaggedApi")
++public interface DeviceHealthListener {
++    /**
++     * Called when a new snapshot has been evaluated.
++     */
++    @SuppressLint("UnflaggedApi")
++    void onSnapshotChanged(@NonNull DeviceHealthSnapshot snapshot);
++
++    /**
++     * Called for every health event produced by a policy transition.
++     */
++    @SuppressLint("UnflaggedApi")
++    void onEvent(@NonNull DeviceHealthEvent event);
++}
+diff --git a/core/java/android/devicehealth/DeviceHealthManager.java b/core/java/android/devicehealth/DeviceHealthManager.java
+new file mode 100644
+index 00000000..36f0ca6b
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthManager.java
+@@ -0,0 +1,234 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++import android.Manifest;
++import android.annotation.NonNull;
++import android.annotation.RequiresPermission;
++import android.annotation.SuppressLint;
++import android.annotation.SystemApi;
++import android.os.RemoteException;
++
++import java.util.IdentityHashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.concurrent.Executor;
++
++/**
++ * Provides access to device health snapshots and recent health events.
++ *
++ * @hide
++ */
++@SystemApi
++public final class DeviceHealthManager {
++    private final IDeviceHealthManager mService;
++    private final Object mListenerLock = new Object();
++    private final Map<DeviceHealthListener, ListenerTransport> mListeners =
++            new IdentityHashMap<>();
++
++    /** @hide */
++    public DeviceHealthManager(@NonNull IDeviceHealthManager service) {
++        mService = service;
++    }
++
++    /**
++     * Returns the latest device health snapshot.
++     *
++     * @hide
++     */
++    @SystemApi
++    @RequiresPermission(Manifest.permission.MANAGE_DEVICE_HEALTH)
++    public @NonNull DeviceHealthSnapshot getSnapshot() {
++        try {
++            return mService.getSnapshot();
++        } catch (RemoteException e) {
++            throw e.rethrowFromSystemServer();
++        }
++    }
++
++    /**
++     * Returns up to {@code limit} recent health events, newest first.
++     *
++     * @hide
++     */
++    @SystemApi
++    @RequiresPermission(Manifest.permission.MANAGE_DEVICE_HEALTH)
++    public @NonNull List<DeviceHealthEvent> getRecentEvents(int limit) {
++        try {
++            return mService.getRecentEvents(limit);
++        } catch (RemoteException e) {
++            throw e.rethrowFromSystemServer();
++        }
++    }
++
++    /**
++     * Returns diagnostic information about the native daemon.
++     *
++     * @hide
++     */
++    @SystemApi
++    @RequiresPermission(Manifest.permission.MANAGE_DEVICE_HEALTH)
++    public @NonNull DeviceHealthDaemonInfo getDaemonInfo() {
++        try {
++            return mService.getDaemonInfo();
++        } catch (RemoteException e) {
++            throw e.rethrowFromSystemServer();
++        }
++    }
++
++    /**
++     * Registers a listener that receives snapshots and events as they are produced by the
++     * framework. Registering the same listener again replaces the previous executor.
++     *
++     * @hide
++     */
++    @SystemApi
++    @SuppressLint("UnflaggedApi")
++    @RequiresPermission(Manifest.permission.MANAGE_DEVICE_HEALTH)
++    public void registerListener(@NonNull Executor executor, @NonNull DeviceHealthListener listener) {
++        if (executor == null) {
++            throw new NullPointerException("executor must not be null");
++        }
++        if (listener == null) {
++            throw new NullPointerException("listener must not be null");
++        }
++        ListenerTransport transport = new ListenerTransport(executor, listener);
++        ListenerTransport previous;
++        synchronized (mListenerLock) {
++            previous = mListeners.put(listener, transport);
++        }
++        if (previous != null) {
++            try {
++                mService.unregisterListener(previous);
++            } catch (RemoteException e) {
++                // The service is restarting; the old registration is gone with it.
++            }
++        }
++        try {
++            mService.registerListener(transport);
++        } catch (RemoteException e) {
++            synchronized (mListenerLock) {
++                mListeners.remove(listener);
++            }
++            throw e.rethrowFromSystemServer();
++        }
++    }
++
++    /**
++     * Unregisters a listener previously passed to
++     * {@link #registerListener(Executor, DeviceHealthListener)}. Unknown listeners are ignored.
++     *
++     * @hide
++     */
++    @SystemApi
++    @SuppressLint("UnflaggedApi")
++    @RequiresPermission(Manifest.permission.MANAGE_DEVICE_HEALTH)
++    public void unregisterListener(@NonNull DeviceHealthListener listener) {
++        if (listener == null) {
++            return;
++        }
++        ListenerTransport transport;
++        synchronized (mListenerLock) {
++            transport = mListeners.remove(listener);
++        }
++        if (transport == null) {
++            return;
++        }
++        try {
++            mService.unregisterListener(transport);
++        } catch (RemoteException e) {
++            throw e.rethrowFromSystemServer();
++        }
++    }
++
++    /**
++     * Injects a critical value for the given metric so the policy engine can be
++     * exercised without special hardware. Only available on debuggable builds.
++     *
++     * @hide
++     */
++    @SystemApi
++    @SuppressLint("UnflaggedApi")
++    @RequiresPermission(Manifest.permission.MANAGE_DEVICE_HEALTH)
++    public void simulateCritical(@NonNull String metricId) {
++        try {
++            mService.simulateCritical(metricId);
++        } catch (RemoteException e) {
++            throw e.rethrowFromSystemServer();
++        }
++    }
++
++    /**
++     * Clears all simulated metric values.
++     *
++     * @hide
++     */
++    @SystemApi
++    @SuppressLint("UnflaggedApi")
++    @RequiresPermission(Manifest.permission.MANAGE_DEVICE_HEALTH)
++    public void clearSimulated() {
++        try {
++            mService.clearSimulated();
++        } catch (RemoteException e) {
++            throw e.rethrowFromSystemServer();
++        }
++    }
++
++    /**
++     * Clears the recent event history and cancels its notifications.
++     *
++     * @hide
++     */
++    @SystemApi
++    @SuppressLint("UnflaggedApi")
++    @RequiresPermission(Manifest.permission.MANAGE_DEVICE_HEALTH)
++    public void clearEvents() {
++        try {
++            mService.clearEvents();
++        } catch (RemoteException e) {
++            throw e.rethrowFromSystemServer();
++        }
++    }
++
++    private static final class ListenerTransport extends IDeviceHealthListener.Stub {
++        private final Executor mExecutor;
++        private final DeviceHealthListener mListener;
++
++        ListenerTransport(Executor executor, DeviceHealthListener listener) {
++            mExecutor = executor;
++            mListener = listener;
++        }
++
++        @Override
++        public void onSnapshotChanged(DeviceHealthSnapshot snapshot) {
++            dispatch(() -> mListener.onSnapshotChanged(snapshot));
++        }
++
++        @Override
++        public void onEvent(DeviceHealthEvent event) {
++            dispatch(() -> mListener.onEvent(event));
++        }
++
++        private void dispatch(Runnable callback) {
++            try {
++                mExecutor.execute(callback);
++            } catch (RuntimeException e) {
++                // The listener's executor is gone (app died or shut down); drop the callback.
++            }
++        }
++    }
++}
+diff --git a/core/java/android/devicehealth/DeviceHealthMetric.aidl b/core/java/android/devicehealth/DeviceHealthMetric.aidl
+new file mode 100644
+index 00000000..b40c455f
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthMetric.aidl
+@@ -0,0 +1,19 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++parcelable DeviceHealthMetric;
+diff --git a/core/java/android/devicehealth/DeviceHealthMetric.java b/core/java/android/devicehealth/DeviceHealthMetric.java
+new file mode 100644
+index 00000000..efb4ecc2
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthMetric.java
+@@ -0,0 +1,108 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++import android.annotation.NonNull;
++import android.annotation.SystemApi;
++import android.os.Parcel;
++import android.os.Parcelable;
++
++/**
++ * A single device health metric.
++ *
++ * @hide
++ */
++@SystemApi
++public final class DeviceHealthMetric implements Parcelable {
++    private final String mId;
++    private final String mName;
++    private final float mValue;
++    private final String mUnit;
++    private final long mTimestampMs;
++    private final boolean mSimulated;
++
++    public DeviceHealthMetric(@NonNull String id, @NonNull String name, float value,
++            @NonNull String unit, long timestampMs, boolean simulated) {
++        mId = id;
++        mName = name;
++        mValue = value;
++        mUnit = unit;
++        mTimestampMs = timestampMs;
++        mSimulated = simulated;
++    }
++
++    private DeviceHealthMetric(Parcel in) {
++        mId = in.readString();
++        mName = in.readString();
++        mValue = in.readFloat();
++        mUnit = in.readString();
++        mTimestampMs = in.readLong();
++        mSimulated = in.readBoolean();
++    }
++
++    public static final @NonNull Creator<DeviceHealthMetric> CREATOR =
++            new Creator<DeviceHealthMetric>() {
++                @Override
++                public DeviceHealthMetric createFromParcel(Parcel in) {
++                    return new DeviceHealthMetric(in);
++                }
++
++                @Override
++                public DeviceHealthMetric[] newArray(int size) {
++                    return new DeviceHealthMetric[size];
++                }
++            };
++
++    @Override
++    public int describeContents() {
++        return 0;
++    }
++
++    @Override
++    public void writeToParcel(@NonNull Parcel dest, int flags) {
++        dest.writeString(mId);
++        dest.writeString(mName);
++        dest.writeFloat(mValue);
++        dest.writeString(mUnit);
++        dest.writeLong(mTimestampMs);
++        dest.writeBoolean(mSimulated);
++    }
++
++    public @NonNull String getId() {
++        return mId;
++    }
++
++    public @NonNull String getName() {
++        return mName;
++    }
++
++    public float getValue() {
++        return mValue;
++    }
++
++    public @NonNull String getUnit() {
++        return mUnit;
++    }
++
++    public long getTimestampMs() {
++        return mTimestampMs;
++    }
++
++    public boolean isSimulated() {
++        return mSimulated;
++    }
++}
+diff --git a/core/java/android/devicehealth/DeviceHealthSnapshot.aidl b/core/java/android/devicehealth/DeviceHealthSnapshot.aidl
+new file mode 100644
+index 00000000..f85fa81d
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthSnapshot.aidl
+@@ -0,0 +1,19 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++parcelable DeviceHealthSnapshot;
+diff --git a/core/java/android/devicehealth/DeviceHealthSnapshot.java b/core/java/android/devicehealth/DeviceHealthSnapshot.java
+new file mode 100644
+index 00000000..d9d265d7
+--- /dev/null
++++ b/core/java/android/devicehealth/DeviceHealthSnapshot.java
+@@ -0,0 +1,119 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++import android.annotation.NonNull;
++import android.annotation.SystemApi;
++import android.os.Parcel;
++import android.os.Parcelable;
++
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.List;
++
++/**
++ * A point-in-time snapshot of device health.
++ *
++ * @hide
++ */
++@SystemApi
++public final class DeviceHealthSnapshot implements Parcelable {
++    public static final int SEVERITY_NORMAL = 0;
++    public static final int SEVERITY_WARNING = 1;
++    public static final int SEVERITY_CRITICAL = 2;
++    public static final int SEVERITY_STALE = 3;
++    public static final int SEVERITY_UNKNOWN = 4;
++
++    private final List<DeviceHealthMetric> mMetrics;
++    private final int mOverallSeverity;
++    private final long mTimestampMs;
++    private final boolean mStale;
++    private final int mDaemonVersion;
++    private final int mCapabilities;
++
++    public DeviceHealthSnapshot(@NonNull List<DeviceHealthMetric> metrics, int overallSeverity,
++            long timestampMs, boolean stale, int daemonVersion, int capabilities) {
++        mMetrics = Collections.unmodifiableList(new ArrayList<>(metrics));
++        mOverallSeverity = overallSeverity;
++        mTimestampMs = timestampMs;
++        mStale = stale;
++        mDaemonVersion = daemonVersion;
++        mCapabilities = capabilities;
++    }
++
++    private DeviceHealthSnapshot(Parcel in) {
++        List<DeviceHealthMetric> metrics = in.createTypedArrayList(DeviceHealthMetric.CREATOR);
++        mMetrics = metrics == null ? Collections.emptyList() : Collections.unmodifiableList(metrics);
++        mOverallSeverity = in.readInt();
++        mTimestampMs = in.readLong();
++        mStale = in.readBoolean();
++        mDaemonVersion = in.readInt();
++        mCapabilities = in.readInt();
++    }
++
++    public static final @NonNull Creator<DeviceHealthSnapshot> CREATOR =
++            new Creator<DeviceHealthSnapshot>() {
++                @Override
++                public DeviceHealthSnapshot createFromParcel(Parcel in) {
++                    return new DeviceHealthSnapshot(in);
++                }
++
++                @Override
++                public DeviceHealthSnapshot[] newArray(int size) {
++                    return new DeviceHealthSnapshot[size];
++                }
++            };
++
++    @Override
++    public int describeContents() {
++        return 0;
++    }
++
++    @Override
++    public void writeToParcel(@NonNull Parcel dest, int flags) {
++        dest.writeTypedList(mMetrics);
++        dest.writeInt(mOverallSeverity);
++        dest.writeLong(mTimestampMs);
++        dest.writeBoolean(mStale);
++        dest.writeInt(mDaemonVersion);
++        dest.writeInt(mCapabilities);
++    }
++
++    public @NonNull List<DeviceHealthMetric> getMetrics() {
++        return mMetrics;
++    }
++
++    public int getOverallSeverity() {
++        return mOverallSeverity;
++    }
++
++    public long getTimestampMs() {
++        return mTimestampMs;
++    }
++
++    public boolean isStale() {
++        return mStale;
++    }
++
++    public int getDaemonVersion() {
++        return mDaemonVersion;
++    }
++
++    public int getCapabilities() {
++        return mCapabilities;
++    }
++}
+diff --git a/core/java/android/devicehealth/IDeviceHealthListener.aidl b/core/java/android/devicehealth/IDeviceHealthListener.aidl
+new file mode 100644
+index 00000000..9d717680
+--- /dev/null
++++ b/core/java/android/devicehealth/IDeviceHealthListener.aidl
+@@ -0,0 +1,30 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++import android.devicehealth.DeviceHealthEvent;
++import android.devicehealth.DeviceHealthSnapshot;
++
++/**
++ * Callback for device health updates pushed by the framework service.
++ *
++ * @hide
++ */
++oneway interface IDeviceHealthListener {
++    void onSnapshotChanged(in DeviceHealthSnapshot snapshot);
++    void onEvent(in DeviceHealthEvent event);
++}
+diff --git a/core/java/android/devicehealth/IDeviceHealthManager.aidl b/core/java/android/devicehealth/IDeviceHealthManager.aidl
+new file mode 100644
+index 00000000..6883daba
+--- /dev/null
++++ b/core/java/android/devicehealth/IDeviceHealthManager.aidl
+@@ -0,0 +1,40 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++import android.devicehealth.DeviceHealthDaemonInfo;
++import android.devicehealth.DeviceHealthEvent;
++import android.devicehealth.DeviceHealthSnapshot;
++import android.devicehealth.IDeviceHealthListener;
++
++import java.util.List;
++
++/**
++ * System-side interface for the device health framework service.
++ *
++ * @hide
++ */
++interface IDeviceHealthManager {
++    DeviceHealthSnapshot getSnapshot();
++    List<DeviceHealthEvent> getRecentEvents(int limit);
++    DeviceHealthDaemonInfo getDaemonInfo();
++    void registerListener(in IDeviceHealthListener listener);
++    void unregisterListener(in IDeviceHealthListener listener);
++    void simulateCritical(String metricId);
++    void clearSimulated();
++    void clearEvents();
++}
+diff --git a/core/res/AndroidManifest.xml b/core/res/AndroidManifest.xml
+index 92fee519..e0fc10dc 100644
+--- a/core/res/AndroidManifest.xml
++++ b/core/res/AndroidManifest.xml
+@@ -3298,6 +3298,10 @@
+     <permission android:name="android.permission.QUERY_ADMIN_POLICY"
+                 android:protectionLevel="signature|role" />
+ 
++    <!-- @SystemApi @hide Allows an application to read device health data. -->
++    <permission android:name="android.permission.MANAGE_DEVICE_HEALTH"
++                android:protectionLevel="signature|privileged" />
++
+     <!-- @SystemApi @hide Allows an application to exempt apps from platform restrictions.-->
+     <permission android:name="android.permission.MANAGE_DEVICE_POLICY_APP_EXEMPTIONS"
+                 android:protectionLevel="internal|role" />
+diff --git a/services/core/Android.bp b/services/core/Android.bp
+index 5fe4be72..4757bb56 100644
+--- a/services/core/Android.bp
++++ b/services/core/Android.bp
+@@ -198,6 +198,7 @@ java_library_static {
+     ],
+ 
+     static_libs: [
++        "android.devicehealth-V1-java", // AIDL
+         "android.frameworks.vibrator-V1-java", // AIDL
+         "android.hardware.authsecret-V1.0-java",
+         "android.hardware.authsecret-V1-java",
+diff --git a/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
+new file mode 100644
+index 00000000..4a584da8
+--- /dev/null
++++ b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
+@@ -0,0 +1,1698 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.server.devicehealth;
++
++import android.Manifest;
++import android.app.Notification;
++import android.app.NotificationChannel;
++import android.app.NotificationManager;
++import android.app.PendingIntent;
++import android.content.Context;
++import android.content.Intent;
++import android.devicehealth.DeviceHealthDaemonInfo;
++import android.devicehealth.DeviceHealthEvent;
++import android.devicehealth.DeviceHealthMetric;
++import android.devicehealth.DeviceHealthSnapshot;
++import android.devicehealth.DaemonInfo;
++import android.devicehealth.IDeviceHealthListener;
++import android.devicehealth.IDeviceHealthManager;
++import android.devicehealth.IDeviceHealthService;
++import android.devicehealth.MetricSample;
++import android.devicehealth.Snapshot;
++import android.os.Binder;
++import android.os.Build;
++import android.os.Handler;
++import android.os.HandlerThread;
++import android.os.IBinder;
++import android.os.Process;
++import android.os.RemoteCallbackList;
++import android.os.RemoteException;
++import android.os.ResultReceiver;
++import android.os.ServiceManager;
++import android.os.ShellCallback;
++import android.os.ShellCommand;
++import android.os.SystemClock;
++import android.os.Trace;
++import android.util.Slog;
++
++import com.android.internal.util.DumpUtils;
++import com.android.server.SystemService;
++
++import java.io.FileDescriptor;
++import java.io.PrintWriter;
++import java.util.ArrayDeque;
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.NoSuchElementException;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.ExecutionException;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
++import java.util.concurrent.Future;
++import java.util.concurrent.ScheduledExecutorService;
++import java.util.concurrent.TimeUnit;
++import java.util.concurrent.TimeoutException;
++import java.util.concurrent.atomic.AtomicInteger;
++
++/**
++ * Framework-side device health service.
++ *
++ * <p>This service owns policy, events and diagnostics. Sampling and caching are
++ * delegated to devicehealthd. A background loop evaluates the latest daemon
++ * snapshot every few seconds, so events and critical notifications are produced
++ * even when no app is polling the service.
++ */
++public final class DeviceHealthManagerService extends SystemService {
++    private static final String TAG = "DeviceHealthService";
++    private static final String DAEMON_SERVICE = "devicehealthd";
++    private static final String CHANNEL_ID = "devicehealth_critical";
++    private static final String NOTIFICATION_TAG = "DeviceHealth";
++    private static final String APP_PACKAGE = "com.android.devicehealthcenter";
++    private static final String APP_ACTIVITY = "com.android.devicehealthcenter.MainActivity";
++    private static final int MAX_EVENTS = 100;
++    private static final long EVALUATION_INTERVAL_MS = 2_000;
++    private static final long DAEMON_CALL_TIMEOUT_MS = 1_500;
++    private static final long WATCHDOG_INTERVAL_MS = 5_000;
++    private static final long WATCHDOG_STALL_MS = 15_000;
++    private static final int MIN_DAEMON_VERSION = 1;
++    private static final int MAX_DAEMON_VERSION = 2;
++    private static final int KNOWN_DAEMON_CAPABILITIES = 0x3;
++    private static final float THERMAL_MIN_C = -40.0f;
++    private static final float THERMAL_MAX_C = 150.0f;
++    private static final float MEMORY_MIN_PERCENT = 0.0f;
++    private static final float MEMORY_MAX_PERCENT = 100.0f;
++
++    private final Object mLock = new Object();
++    private final PolicyEngine mPolicyEngine = new PolicyEngine();
++    private final ArrayDeque<DeviceHealthEvent> mEvents = new ArrayDeque<>();
++    private final Map<String, Float> mSimulatedValues = new HashMap<>();
++    private final RemoteCallbackList<IDeviceHealthListener> mListeners =
++            new RemoteCallbackList<>();
++    private final Map<String, CallStats> mCallStats = new ConcurrentHashMap<>();
++    private final ExecutorService mDaemonExecutor = Executors.newCachedThreadPool(r -> {
++        Thread thread = new Thread(r, "DeviceHealthDaemon");
++        thread.setDaemon(true);
++        return thread;
++    });
++    private final ScheduledExecutorService mWatchdogExecutor =
++            Executors.newSingleThreadScheduledExecutor(r -> {
++                Thread thread = new Thread(r, "DeviceHealthWatchdog");
++                thread.setDaemon(true);
++                return thread;
++            });
++    private final AtomicInteger mDaemonTimeouts = new AtomicInteger();
++    private final AtomicInteger mWatchdogTrips = new AtomicInteger();
++
++    private volatile long mLastEvaluationEndMs;
++    private volatile long mLastEvaluationDurationMs;
++    private volatile int mDaemonVersionOverride = -1;
++    private volatile boolean mEvaluationStallReported;
++    private volatile String mLastRejectedSample = "";
++    private long mLastRejectedLogMs;
++
++    private IDeviceHealthService mDaemon;
++    private IBinder.DeathRecipient mDaemonDeathRecipient;
++    private NotificationManager mNotificationManager;
++    private boolean mChannelCreated;
++    private int mNextEventId = 1;
++
++    private HandlerThread mHandlerThread;
++    private Handler mHandler;
++    private boolean mEvaluationStarted;
++
++    private DeviceHealthSnapshot mLastSnapshot;
++    private List<DeviceHealthMetric> mLastMetrics = Collections.emptyList();
++    private long mLastSnapshotTimestampMs;
++    private int mEvaluationCount;
++    private int mLastUnknownCapabilities;
++
++    private final Runnable mEvaluationRunnable = new Runnable() {
++        @Override
++        public void run() {
++            refresh();
++            if (mHandler != null) {
++                mHandler.postDelayed(this, EVALUATION_INTERVAL_MS);
++            }
++        }
++    };
++
++    public DeviceHealthManagerService(Context context) {
++        super(context);
++    }
++
++    @Override
++    public void onStart() {
++        publishBinderService(Context.DEVICE_HEALTH_SERVICE, new BinderService());
++        mHandlerThread = new HandlerThread("DeviceHealth");
++        mHandlerThread.start();
++        mHandler = new Handler(mHandlerThread.getLooper());
++        Slog.i(TAG, "DeviceHealthManagerService started");
++    }
++
++    @Override
++    public void onBootPhase(int phase) {
++        if (phase == PHASE_SYSTEM_SERVICES_READY) {
++            ensureNotificationChannel();
++            startEvaluationLoop();
++        }
++    }
++
++    private void startEvaluationLoop() {
++        if (mEvaluationStarted || mHandler == null) {
++            return;
++        }
++        mEvaluationStarted = true;
++        mHandler.post(mEvaluationRunnable);
++        mWatchdogExecutor.scheduleWithFixedDelay(this::checkWatchdog, WATCHDOG_INTERVAL_MS,
++                WATCHDOG_INTERVAL_MS, TimeUnit.MILLISECONDS);
++        Slog.i(TAG, "Device health evaluation loop started (daemon versions "
++                + MIN_DAEMON_VERSION + ".." + MAX_DAEMON_VERSION + " supported)");
++    }
++
++    /**
++     * Runs on the watchdog thread and reports when the evaluation handler stops making
++     * progress. Binder calls to the daemon are bounded by {@link #DAEMON_CALL_TIMEOUT_MS},
++     * so a stall here usually points at a blocked system_server thread.
++     */
++    private void checkWatchdog() {
++        if (!mEvaluationStarted) {
++            return;
++        }
++        long lastEvaluationMs = mLastEvaluationEndMs;
++        if (lastEvaluationMs <= 0) {
++            return;
++        }
++        long ageMs = SystemClock.elapsedRealtime() - lastEvaluationMs;
++        if (ageMs > WATCHDOG_STALL_MS) {
++            if (!mEvaluationStallReported) {
++                mEvaluationStallReported = true;
++                mWatchdogTrips.incrementAndGet();
++                Slog.e(TAG, "Watchdog: evaluation loop stalled for " + ageMs + "ms");
++            }
++        } else if (mEvaluationStallReported) {
++            mEvaluationStallReported = false;
++            Slog.i(TAG, "Watchdog: evaluation loop recovered");
++        }
++    }
++
++    private void ensureNotificationChannel() {
++        if (mChannelCreated) {
++            return;
++        }
++        if (mNotificationManager == null) {
++            mNotificationManager = getContext().getSystemService(NotificationManager.class);
++        }
++        if (mNotificationManager == null) {
++            return;
++        }
++        NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
++                "Device health alerts", NotificationManager.IMPORTANCE_HIGH);
++        channel.setDescription("Critical device health alerts");
++        mNotificationManager.createNotificationChannel(channel);
++        mChannelCreated = true;
++    }
++
++    private IDeviceHealthService getDaemon() {
++        synchronized (mLock) {
++            if (mDaemon != null) {
++                return mDaemon;
++            }
++            IBinder binder = ServiceManager.getService(DAEMON_SERVICE);
++            if (binder == null) {
++                return null;
++            }
++            mDaemon = IDeviceHealthService.Stub.asInterface(binder);
++            mDaemonDeathRecipient = () -> {
++                synchronized (mLock) {
++                    mDaemon = null;
++                    mDaemonDeathRecipient = null;
++                }
++                Slog.w(TAG, "devicehealthd died");
++                if (mHandler != null) {
++                    mHandler.post(DeviceHealthManagerService.this::refresh);
++                }
++            };
++            try {
++                binder.linkToDeath(mDaemonDeathRecipient, 0);
++            } catch (RemoteException e) {
++                mDaemon = null;
++                mDaemonDeathRecipient = null;
++                Slog.w(TAG, "Unable to link to devicehealthd", e);
++            }
++            return mDaemon;
++        }
++    }
++
++    /** Drops the daemon connection. Caller must hold {@link #mLock}. */
++    private void dropDaemonLocked() {
++        if (mDaemon != null && mDaemonDeathRecipient != null) {
++            try {
++                mDaemon.asBinder().unlinkToDeath(mDaemonDeathRecipient, 0);
++            } catch (NoSuchElementException e) {
++                // The binder already died; nothing left to unlink.
++            }
++        }
++        mDaemon = null;
++        mDaemonDeathRecipient = null;
++    }
++
++    private CallStats stats(String name) {
++        return mCallStats.computeIfAbsent(name, key -> new CallStats());
++    }
++
++    private static int compatibilityOf(int version) {
++        if (version < MIN_DAEMON_VERSION) {
++            return DeviceHealthDaemonInfo.COMPATIBILITY_TOO_OLD;
++        }
++        if (version > MAX_DAEMON_VERSION) {
++            return DeviceHealthDaemonInfo.COMPATIBILITY_NEWER;
++        }
++        return DeviceHealthDaemonInfo.COMPATIBILITY_OK;
++    }
++
++    private static String compatibilityName(int compatibility) {
++        switch (compatibility) {
++            case DeviceHealthDaemonInfo.COMPATIBILITY_OK:
++                return "OK";
++            case DeviceHealthDaemonInfo.COMPATIBILITY_TOO_OLD:
++                return "TOO_OLD";
++            case DeviceHealthDaemonInfo.COMPATIBILITY_NEWER:
++                return "NEWER";
++            default:
++                return "UNAVAILABLE";
++        }
++    }
++
++    private int effectiveDaemonVersion(int reportedVersion) {
++        int override = mDaemonVersionOverride;
++        return override >= 0 ? override : reportedVersion;
++    }
++
++    /** Bounds the daemon binder call so a wedged devicehealthd cannot stall evaluation. */
++    private SnapshotResult fetchSnapshot(IDeviceHealthService daemon) {
++        CallStats callStats = stats("daemon.getSnapshot");
++        long startMs = SystemClock.uptimeMillis();
++        Future<Snapshot> future = mDaemonExecutor.submit(() -> {
++            Trace.traceBegin(Trace.TRACE_TAG_SYSTEM_SERVER, "devicehealth.binder");
++            try {
++                return daemon.getSnapshot();
++            } finally {
++                Trace.traceEnd(Trace.TRACE_TAG_SYSTEM_SERVER);
++            }
++        });
++        try {
++            Snapshot snapshot = future.get(DAEMON_CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            return new SnapshotResult(snapshot, null);
++        } catch (TimeoutException e) {
++            future.cancel(true);
++            mDaemonTimeouts.incrementAndGet();
++            callStats.recordError();
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            Slog.w(TAG, "devicehealthd getSnapshot timed out after "
++                    + DAEMON_CALL_TIMEOUT_MS + "ms");
++            return new SnapshotResult(null, "getSnapshot timed out");
++        } catch (ExecutionException e) {
++            callStats.recordError();
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            String message = describeFailure("getSnapshot", e.getCause());
++            Slog.w(TAG, message, e.getCause());
++            return new SnapshotResult(null, message);
++        } catch (InterruptedException e) {
++            Thread.currentThread().interrupt();
++            return new SnapshotResult(null, "getSnapshot interrupted");
++        }
++    }
++
++    private DaemonInfoResult fetchDaemonInfo(IDeviceHealthService daemon) {
++        CallStats callStats = stats("daemon.getDaemonInfo");
++        long startMs = SystemClock.uptimeMillis();
++        Future<DaemonInfo> future = mDaemonExecutor.submit(daemon::getDaemonInfo);
++        try {
++            DaemonInfo info = future.get(DAEMON_CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            return new DaemonInfoResult(info, null);
++        } catch (TimeoutException e) {
++            future.cancel(true);
++            mDaemonTimeouts.incrementAndGet();
++            callStats.recordError();
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            Slog.w(TAG, "devicehealthd getDaemonInfo timed out after "
++                    + DAEMON_CALL_TIMEOUT_MS + "ms");
++            return new DaemonInfoResult(null, "getDaemonInfo timed out");
++        } catch (ExecutionException e) {
++            callStats.recordError();
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            String message = describeFailure("getDaemonInfo", e.getCause());
++            Slog.w(TAG, message, e.getCause());
++            return new DaemonInfoResult(null, message);
++        } catch (InterruptedException e) {
++            Thread.currentThread().interrupt();
++            return new DaemonInfoResult(null, "getDaemonInfo interrupted");
++        }
++    }
++
++    /** Returns the applied interval, or {@code -1} when the daemon cannot be reached. */
++    private int setDaemonSamplingInterval(int intervalMs) {
++        IDeviceHealthService daemon = getDaemon();
++        if (daemon == null) {
++            return -1;
++        }
++        CallStats callStats = stats("daemon.setSamplingIntervalMs");
++        long startMs = SystemClock.uptimeMillis();
++        Future<Integer> future = mDaemonExecutor.submit(
++                () -> daemon.setSamplingIntervalMs(intervalMs));
++        try {
++            int applied = future.get(DAEMON_CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            return applied;
++        } catch (TimeoutException e) {
++            future.cancel(true);
++            mDaemonTimeouts.incrementAndGet();
++            callStats.recordError();
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            Slog.w(TAG, "devicehealthd setSamplingIntervalMs timed out after "
++                    + DAEMON_CALL_TIMEOUT_MS + "ms");
++            return -1;
++        } catch (ExecutionException e) {
++            callStats.recordError();
++            callStats.record(SystemClock.uptimeMillis() - startMs);
++            Slog.w(TAG, describeFailure("setSamplingIntervalMs", e.getCause()), e.getCause());
++            return -1;
++        } catch (InterruptedException e) {
++            Thread.currentThread().interrupt();
++            return -1;
++        }
++    }
++
++    private static String describeFailure(String operation, Throwable cause) {
++        if (cause == null) {
++            return operation + " failed";
++        }
++        String detail = cause.getMessage();
++        return operation + " failed: " + (detail == null ? cause.getClass().getSimpleName()
++                : detail);
++    }
++
++    private static final class SnapshotResult {
++        final Snapshot snapshot;
++        final String error;
++
++        SnapshotResult(Snapshot snapshot, String error) {
++            this.snapshot = snapshot;
++            this.error = error;
++        }
++    }
++
++    private static final class DaemonInfoResult {
++        final DaemonInfo info;
++        final String error;
++
++        DaemonInfoResult(DaemonInfo info, String error) {
++            this.info = info;
++            this.error = error;
++        }
++    }
++
++    private static final class CallStats {
++        private long mCount;
++        private long mErrors;
++        private long mTotalMs;
++        private long mMaxMs;
++
++        synchronized void record(long durationMs) {
++            mCount++;
++            mTotalMs += Math.max(0, durationMs);
++            if (durationMs > mMaxMs) {
++                mMaxMs = durationMs;
++            }
++        }
++
++        synchronized void recordError() {
++            mErrors++;
++        }
++
++        synchronized String describe() {
++            long averageMs = mCount == 0 ? 0 : mTotalMs / mCount;
++            return mCount + " calls, avg " + averageMs + "ms, max " + mMaxMs
++                    + "ms, errors " + mErrors;
++        }
++    }
++
++    /**
++     * Fetches one daemon snapshot, runs policy and publishes events. This is the
++     * only place where policy evaluation happens.
++     */
++    private void refresh() {
++        long refreshStartMs = SystemClock.elapsedRealtime();
++        IDeviceHealthService daemon = getDaemon();
++        Snapshot raw = null;
++        String daemonError = null;
++        if (daemon != null) {
++            SnapshotResult fetchResult = fetchSnapshot(daemon);
++            raw = fetchResult.snapshot;
++            daemonError = fetchResult.error;
++        }
++
++        List<DeviceHealthEvent> newEvents = new ArrayList<>();
++        List<DeviceHealthEvent> criticalEvents = new ArrayList<>();
++        DeviceHealthSnapshot snapshot;
++        synchronized (mLock) {
++            long now = SystemClock.elapsedRealtime();
++            int daemonVersion = 0;
++            int capabilities = 0;
++            long snapshotTimestamp;
++            boolean stale;
++            List<DeviceHealthMetric> metrics;
++            PolicyEngine.Result result;
++
++            if (raw == null) {
++                dropDaemonLocked();
++                if (daemonError != null) {
++                    Slog.w(TAG, "Unable to read devicehealthd snapshot: " + daemonError);
++                }
++                metrics = mLastMetrics;
++                result = mPolicyEngine.onDataUnavailable(now);
++                snapshotTimestamp = mLastSnapshotTimestampMs > 0 ? mLastSnapshotTimestampMs : now;
++                stale = true;
++            } else {
++                metrics = convertMetrics(raw.metrics, now);
++                Trace.traceBegin(Trace.TRACE_TAG_SYSTEM_SERVER, "devicehealth.policy");
++                try {
++                    result = mPolicyEngine.evaluate(metrics, now);
++                } finally {
++                    Trace.traceEnd(Trace.TRACE_TAG_SYSTEM_SERVER);
++                }
++                snapshotTimestamp = raw.timestampMs > 0 ? raw.timestampMs : now;
++                stale = raw.stale
++                        || result.overallSeverity == DeviceHealthSnapshot.SEVERITY_STALE
++                        || result.overallSeverity == DeviceHealthSnapshot.SEVERITY_UNKNOWN;
++                daemonVersion = raw.daemonVersion;
++                capabilities = raw.capabilities;
++                noteUnknownCapabilitiesLocked(capabilities);
++                mLastMetrics = metrics;
++                mLastSnapshotTimestampMs = snapshotTimestamp;
++            }
++
++            int compatibility = compatibilityOf(effectiveDaemonVersion(daemonVersion));
++            boolean degraded = raw != null
++                    && compatibility == DeviceHealthDaemonInfo.COMPATIBILITY_TOO_OLD;
++            mEvaluationCount++;
++            if (!degraded) {
++                for (PolicyEngine.Transition transition : result.transitions) {
++                    DeviceHealthEvent event = new DeviceHealthEvent(mNextEventId++,
++                            transition.metricId, transition.fromSeverity, transition.toSeverity,
++                            transition.value, transition.threshold, now, transition.message);
++                    mEvents.addFirst(event);
++                    while (mEvents.size() > MAX_EVENTS) {
++                        mEvents.removeLast();
++                    }
++                    newEvents.add(event);
++                    if (transition.toSeverity == DeviceHealthSnapshot.SEVERITY_CRITICAL
++                            && transition.fromSeverity != DeviceHealthSnapshot.SEVERITY_CRITICAL) {
++                        criticalEvents.add(event);
++                    }
++                }
++            }
++
++            snapshot = new DeviceHealthSnapshot(metrics, result.overallSeverity,
++                    snapshotTimestamp, stale, daemonVersion, capabilities);
++            mLastSnapshot = snapshot;
++        }
++        mLastEvaluationEndMs = SystemClock.elapsedRealtime();
++        mLastEvaluationDurationMs = mLastEvaluationEndMs - refreshStartMs;
++
++        if (mListeners.getRegisteredCallbackCount() > 0) {
++            broadcastSnapshot(snapshot);
++            for (DeviceHealthEvent event : newEvents) {
++                broadcastEvent(event);
++            }
++        }
++        for (DeviceHealthEvent event : criticalEvents) {
++            postCriticalNotification(event);
++        }
++    }
++
++    private void noteUnknownCapabilitiesLocked(int capabilities) {
++        int unknown = capabilities & ~KNOWN_DAEMON_CAPABILITIES;
++        if (unknown != 0 && unknown != mLastUnknownCapabilities) {
++            mLastUnknownCapabilities = unknown;
++            Slog.w(TAG, "devicehealthd reports unknown capabilities 0x"
++                    + Integer.toHexString(unknown));
++        }
++    }
++
++    private void broadcastSnapshot(DeviceHealthSnapshot snapshot) {
++        int count = mListeners.beginBroadcast();
++        try {
++            for (int i = 0; i < count; i++) {
++                try {
++                    mListeners.getBroadcastItem(i).onSnapshotChanged(snapshot);
++                } catch (RemoteException | RuntimeException e) {
++                    // RemoteCallbackList removes dead listeners; ignore individual failures.
++                }
++            }
++        } finally {
++            mListeners.finishBroadcast();
++        }
++    }
++
++    private void broadcastEvent(DeviceHealthEvent event) {
++        int count = mListeners.beginBroadcast();
++        try {
++            for (int i = 0; i < count; i++) {
++                try {
++                    mListeners.getBroadcastItem(i).onEvent(event);
++                } catch (RemoteException | RuntimeException e) {
++                    // Ignore individual listener failures.
++                }
++            }
++        } finally {
++            mListeners.finishBroadcast();
++        }
++    }
++
++    private List<DeviceHealthMetric> convertMetrics(MetricSample[] samples, long nowMs) {
++        List<DeviceHealthMetric> metrics = new ArrayList<>();
++        String rejected = "";
++        if (samples != null) {
++            for (MetricSample sample : samples) {
++                Float override = mSimulatedValues.get(sample.id);
++                float value = override != null ? override : sample.value;
++                long timestampMs = override != null ? nowMs : sample.timestampMs;
++                boolean simulated = override != null || sample.simulated;
++                String problem = validateSample(sample.id, value);
++                if (problem != null) {
++                    rejected = describeRejectedSample(sample.id, value, sample.unit, problem);
++                    DeviceHealthMetric previous = findLastMetric(sample.id);
++                    if (previous != null) {
++                        metrics.add(previous);
++                    }
++                    continue;
++                }
++                metrics.add(new DeviceHealthMetric(sample.id, sample.name, value, sample.unit,
++                        timestampMs, simulated));
++            }
++        }
++
++        // Overrides for metrics the daemon does not report (for example when the HAL is absent).
++        for (Map.Entry<String, Float> entry : mSimulatedValues.entrySet()) {
++            boolean present = false;
++            for (DeviceHealthMetric metric : metrics) {
++                if (metric.getId().equals(entry.getKey())) {
++                    present = true;
++                    break;
++                }
++            }
++            if (!present) {
++                String unit = entry.getKey().startsWith("thermal.") ? "C" : "percent";
++                String problem = validateSample(entry.getKey(), entry.getValue());
++                if (problem != null) {
++                    rejected = describeRejectedSample(entry.getKey(), entry.getValue(), unit,
++                            problem);
++                    continue;
++                }
++                metrics.add(new DeviceHealthMetric(entry.getKey(), entry.getKey(),
++                        entry.getValue(), unit, nowMs, /*simulated=*/true));
++            }
++        }
++        updateRejectedSampleLocked(rejected);
++        return metrics;
++    }
++
++    private DeviceHealthMetric findLastMetric(String id) {
++        for (DeviceHealthMetric metric : mLastMetrics) {
++            if (metric.getId().equals(id)) {
++                return metric;
++            }
++        }
++        return null;
++    }
++
++    private static String validateSample(String id, float value) {
++        if (!Float.isFinite(value)) {
++            return "non-finite value";
++        }
++        if (id.startsWith("thermal.")) {
++            if (value < THERMAL_MIN_C || value > THERMAL_MAX_C) {
++                return "outside [" + (int) THERMAL_MIN_C + ", " + (int) THERMAL_MAX_C + "] C";
++            }
++        } else if ("memory.pressure".equals(id)) {
++            if (value < MEMORY_MIN_PERCENT || value > MEMORY_MAX_PERCENT) {
++                return "outside [0, 100] percent";
++            }
++        }
++        return null;
++    }
++
++    private static String describeRejectedSample(String id, float value, String unit,
++            String problem) {
++        return id + "=" + value + " " + unit + " (" + problem + ")";
++    }
++
++    /** Called with {@link #mLock} held from {@link #convertMetrics}. */
++    private void updateRejectedSampleLocked(String rejected) {
++        if (rejected.isEmpty()) {
++            mLastRejectedSample = "";
++            return;
++        }
++        long now = SystemClock.elapsedRealtime();
++        if (!rejected.equals(mLastRejectedSample) || now - mLastRejectedLogMs > 10_000) {
++            mLastRejectedLogMs = now;
++            Slog.w(TAG, "Rejected metric sample: " + rejected);
++        }
++        mLastRejectedSample = rejected;
++    }
++
++    private void postCriticalNotification(DeviceHealthEvent event) {
++        long token = Binder.clearCallingIdentity();
++        try {
++            ensureNotificationChannel();
++            if (mNotificationManager == null || !mChannelCreated) {
++                Slog.w(TAG, "Cannot post critical notification: notification manager unavailable");
++                return;
++            }
++            Intent intent = new Intent(Intent.ACTION_MAIN);
++            intent.setClassName(APP_PACKAGE, APP_ACTIVITY);
++            intent.putExtra("event_id", event.getEventId());
++            intent.putExtra("event_message", event.getMessage());
++            intent.putExtra("metric_id", event.getMetricId());
++            intent.putExtra("severity", event.getToSeverity());
++            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
++
++            PendingIntent pendingIntent = PendingIntent.getActivity(getContext(),
++                    event.getEventId(), intent,
++                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
++
++            Notification notification = new Notification.Builder(getContext(), CHANNEL_ID)
++                    .setSmallIcon(android.R.drawable.stat_notify_error)
++                    .setContentTitle("Device health critical")
++                    .setContentText(event.getMessage())
++                    .setStyle(new Notification.BigTextStyle().bigText(event.getMessage()))
++                    .setCategory(Notification.CATEGORY_ALARM)
++                    .setAutoCancel(true)
++                    .setContentIntent(pendingIntent)
++                    .build();
++            mNotificationManager.notify(NOTIFICATION_TAG, event.getEventId(), notification);
++            Slog.i(TAG, "Posted critical notification for event " + event.getEventId());
++        } finally {
++            Binder.restoreCallingIdentity(token);
++        }
++    }
++
++    private DeviceHealthDaemonInfo queryDaemonInfo() {
++        IDeviceHealthService daemon = getDaemon();
++        if (daemon == null) {
++            return new DeviceHealthDaemonInfo(0, 0, 0, "devicehealthd unavailable",
++                    DeviceHealthDaemonInfo.COMPATIBILITY_UNAVAILABLE);
++        }
++        DaemonInfoResult result = fetchDaemonInfo(daemon);
++        if (result.info == null) {
++            synchronized (mLock) {
++                dropDaemonLocked();
++            }
++            return new DeviceHealthDaemonInfo(0, 0, 0, "devicehealthd unavailable",
++                    DeviceHealthDaemonInfo.COMPATIBILITY_UNAVAILABLE);
++        }
++        DaemonInfo info = result.info;
++        int effectiveVersion = effectiveDaemonVersion(info.interfaceVersion);
++        return new DeviceHealthDaemonInfo(info.interfaceVersion, info.capabilities, info.pid,
++                info.lastError, compatibilityOf(effectiveVersion));
++    }
++
++    private boolean isDaemonDegraded() {
++        synchronized (mLock) {
++            int override = mDaemonVersionOverride;
++            if (mDaemon == null && override < 0) {
++                return false;
++            }
++            int version;
++            if (override >= 0) {
++                version = override;
++            } else if (mLastSnapshot != null) {
++                version = mLastSnapshot.getDaemonVersion();
++            } else {
++                version = 0;
++            }
++            return compatibilityOf(version) == DeviceHealthDaemonInfo.COMPATIBILITY_TOO_OLD;
++        }
++    }
++
++    private void ensureNotDegraded() {
++        if (isDaemonDegraded()) {
++            throw new IllegalStateException(
++                    "Daemon interface version is below the supported minimum; feature disabled");
++        }
++    }
++
++    private void armCriticalSimulation(String metricId) {
++        PolicyEngine.Thresholds thresholds = mPolicyEngine.thresholdsFor(metricId);
++        if (thresholds == null) {
++            throw new IllegalArgumentException("Unsupported metric: " + metricId);
++        }
++        float value = thresholds.criticalEnter + 5.0f;
++        synchronized (mLock) {
++            mSimulatedValues.put(metricId, value);
++        }
++        refresh();
++    }
++
++    private void clearSimulatedMetrics() {
++        synchronized (mLock) {
++            mSimulatedValues.clear();
++        }
++        refresh();
++    }
++
++    private void clearEventsInternal() {
++        List<Integer> notificationIds = new ArrayList<>();
++        synchronized (mLock) {
++            for (DeviceHealthEvent event : mEvents) {
++                notificationIds.add(event.getEventId());
++            }
++            mEvents.clear();
++        }
++        if (mNotificationManager != null && !notificationIds.isEmpty()) {
++            long token = Binder.clearCallingIdentity();
++            try {
++                for (int id : notificationIds) {
++                    mNotificationManager.cancel(NOTIFICATION_TAG, id);
++                }
++            } finally {
++                Binder.restoreCallingIdentity(token);
++            }
++        }
++    }
++
++    private void enforceDebuggable() {
++        if (!Build.IS_DEBUGGABLE) {
++            throw new SecurityException("Simulation is only available on debuggable builds");
++        }
++    }
++
++    private void addSimulatedCriticalEvent(PrintWriter pw) {
++        DeviceHealthEvent event;
++        synchronized (mLock) {
++            event = new DeviceHealthEvent(mNextEventId++, "thermal.cpu",
++                    DeviceHealthSnapshot.SEVERITY_WARNING,
++                    DeviceHealthSnapshot.SEVERITY_CRITICAL, 78.0f, 75.0f,
++                    SystemClock.elapsedRealtime(),
++                    "thermal.cpu: simulated critical (78.0 C, threshold 75.0)");
++            mEvents.addFirst(event);
++            while (mEvents.size() > MAX_EVENTS) {
++                mEvents.removeLast();
++            }
++        }
++        long token = Binder.clearCallingIdentity();
++        try {
++            postCriticalNotification(event);
++        } finally {
++            Binder.restoreCallingIdentity(token);
++        }
++        pw.println("Simulated critical event #" + event.getEventId());
++    }
++
++    private DeviceHealthSnapshot currentSnapshot() {
++        boolean needsRefresh;
++        synchronized (mLock) {
++            needsRefresh = mLastSnapshot == null;
++        }
++        if (needsRefresh) {
++            refresh();
++        }
++        synchronized (mLock) {
++            if (mLastSnapshot != null) {
++                return mLastSnapshot;
++            }
++            return new DeviceHealthSnapshot(Collections.emptyList(),
++                    DeviceHealthSnapshot.SEVERITY_UNKNOWN, SystemClock.elapsedRealtime(),
++                    /*stale=*/true, /*daemonVersion=*/0, /*capabilities=*/0);
++        }
++    }
++
++    private final class BinderService extends IDeviceHealthManager.Stub {
++        @Override
++        public DeviceHealthSnapshot getSnapshot() {
++            long startMs = SystemClock.uptimeMillis();
++            try {
++                enforcePermission();
++                return currentSnapshot();
++            } catch (RuntimeException e) {
++                stats("getSnapshot").recordError();
++                throw e;
++            } finally {
++                stats("getSnapshot").record(SystemClock.uptimeMillis() - startMs);
++            }
++        }
++
++        @Override
++        public List<DeviceHealthEvent> getRecentEvents(int limit) {
++            long startMs = SystemClock.uptimeMillis();
++            try {
++                enforcePermission();
++                synchronized (mLock) {
++                    int max = limit <= 0 ? MAX_EVENTS : Math.min(limit, MAX_EVENTS);
++                    List<DeviceHealthEvent> result = new ArrayList<>();
++                    for (DeviceHealthEvent event : mEvents) {
++                        if (result.size() >= max) {
++                            break;
++                        }
++                        result.add(event);
++                    }
++                    return result;
++                }
++            } catch (RuntimeException e) {
++                stats("getRecentEvents").recordError();
++                throw e;
++            } finally {
++                stats("getRecentEvents").record(SystemClock.uptimeMillis() - startMs);
++            }
++        }
++
++        @Override
++        public DeviceHealthDaemonInfo getDaemonInfo() {
++            long startMs = SystemClock.uptimeMillis();
++            try {
++                enforcePermission();
++                return queryDaemonInfo();
++            } catch (RuntimeException e) {
++                stats("getDaemonInfo").recordError();
++                throw e;
++            } finally {
++                stats("getDaemonInfo").record(SystemClock.uptimeMillis() - startMs);
++            }
++        }
++
++        @Override
++        public void registerListener(IDeviceHealthListener listener) {
++            long startMs = SystemClock.uptimeMillis();
++            try {
++                enforcePermission();
++                if (listener == null) {
++                    throw new IllegalArgumentException("listener must not be null");
++                }
++                mListeners.register(listener);
++                DeviceHealthSnapshot snapshot = currentSnapshot();
++                try {
++                    listener.onSnapshotChanged(snapshot);
++                } catch (RemoteException | RuntimeException e) {
++                    // The listener died immediately; RemoteCallbackList will clean it up.
++                }
++                Slog.i(TAG, "Listener registered ("
++                        + mListeners.getRegisteredCallbackCount() + " active)");
++            } catch (RuntimeException e) {
++                stats("registerListener").recordError();
++                throw e;
++            } finally {
++                stats("registerListener").record(SystemClock.uptimeMillis() - startMs);
++            }
++        }
++
++        @Override
++        public void unregisterListener(IDeviceHealthListener listener) {
++            long startMs = SystemClock.uptimeMillis();
++            try {
++                enforcePermission();
++                if (listener != null) {
++                    mListeners.unregister(listener);
++                }
++                Slog.i(TAG, "Listener unregistered ("
++                        + mListeners.getRegisteredCallbackCount() + " active)");
++            } catch (RuntimeException e) {
++                stats("unregisterListener").recordError();
++                throw e;
++            } finally {
++                stats("unregisterListener").record(SystemClock.uptimeMillis() - startMs);
++            }
++        }
++
++        @Override
++        public void simulateCritical(String metricId) {
++            long startMs = SystemClock.uptimeMillis();
++            try {
++                enforcePermission();
++                enforceDebuggable();
++                ensureNotDegraded();
++                if (metricId == null) {
++                    throw new IllegalArgumentException("metricId must not be null");
++                }
++                armCriticalSimulation(metricId);
++            } catch (RuntimeException e) {
++                stats("simulateCritical").recordError();
++                throw e;
++            } finally {
++                stats("simulateCritical").record(SystemClock.uptimeMillis() - startMs);
++            }
++        }
++
++        @Override
++        public void clearSimulated() {
++            long startMs = SystemClock.uptimeMillis();
++            try {
++                enforcePermission();
++                enforceDebuggable();
++                clearSimulatedMetrics();
++            } catch (RuntimeException e) {
++                stats("clearSimulated").recordError();
++                throw e;
++            } finally {
++                stats("clearSimulated").record(SystemClock.uptimeMillis() - startMs);
++            }
++        }
++
++        @Override
++        public void clearEvents() {
++            long startMs = SystemClock.uptimeMillis();
++            try {
++                enforcePermission();
++                clearEventsInternal();
++            } catch (RuntimeException e) {
++                stats("clearEvents").recordError();
++                throw e;
++            } finally {
++                stats("clearEvents").record(SystemClock.uptimeMillis() - startMs);
++            }
++        }
++
++        @Override
++        public void onShellCommand(FileDescriptor in, FileDescriptor out, FileDescriptor err,
++                String[] args, ShellCallback callback, ResultReceiver resultReceiver) {
++            new DeviceHealthShellCommand().exec(this, in, out, err, args, callback,
++                    resultReceiver);
++        }
++
++        @Override
++        protected void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
++            if (!DumpUtils.checkDumpPermission(getContext(), TAG, pw)) {
++                return;
++            }
++            if (args != null && args.length > 0) {
++                if ("simulate-critical".equals(args[0])) {
++                    addSimulatedCriticalEvent(pw);
++                    return;
++                }
++                if ("simulate-metric".equals(args[0]) && args.length >= 3) {
++                    try {
++                        float value = Float.parseFloat(args[2]);
++                        synchronized (mLock) {
++                            mSimulatedValues.put(args[1], value);
++                        }
++                        refresh();
++                        pw.println("Simulated " + args[1] + " = " + value);
++                    } catch (NumberFormatException e) {
++                        pw.println("Usage: dumpsys devicehealth simulate-metric <id> <value>");
++                    }
++                    return;
++                }
++                if ("clear-simulated".equals(args[0])) {
++                    synchronized (mLock) {
++                        mSimulatedValues.clear();
++                    }
++                    refresh();
++                    pw.println("Cleared simulated metric overrides");
++                    return;
++                }
++            }
++
++            refresh();
++            DeviceHealthDaemonInfo daemonInfo = queryDaemonInfo();
++            synchronized (mLock) {
++                if (mLastSnapshot == null) {
++                    pw.println("DeviceHealth Service: not initialized");
++                    return;
++                }
++                long now = SystemClock.elapsedRealtime();
++                pw.println("DeviceHealth Service");
++                pw.println("  state: "
++                        + PolicyEngine.severityName(mLastSnapshot.getOverallSeverity()));
++                pw.println("  last update: "
++                        + Math.max(0, now - mLastSnapshot.getTimestampMs()) + "ms ago");
++                pw.println("  stale: " + mLastSnapshot.isStale());
++                pw.println("  daemon: " + (mDaemon != null ? "connected" : "unavailable")
++                        + " version=" + mLastSnapshot.getDaemonVersion()
++                        + " capabilities=0x"
++                        + Integer.toHexString(mLastSnapshot.getCapabilities()));
++                pw.println("  compatibility: " + compatibilityName(daemonInfo.getCompatibility())
++                        + " (supported " + MIN_DAEMON_VERSION + ".." + MAX_DAEMON_VERSION + ")");
++                if (mDaemonVersionOverride >= 0) {
++                    pw.println("  daemon version override: " + mDaemonVersionOverride
++                            + " (debug)");
++                }
++                pw.println("  listeners: " + mListeners.getRegisteredCallbackCount());
++                pw.println("  watchdog: " + (mEvaluationStallReported ? "STALLED" : "ok")
++                        + " (last evaluation took " + mLastEvaluationDurationMs
++                        + "ms, " + (mLastEvaluationEndMs <= 0 ? -1 : now - mLastEvaluationEndMs)
++                        + "ms ago, trips " + mWatchdogTrips.get()
++                        + ", daemon timeouts " + mDaemonTimeouts.get() + ")");
++                pw.println("  last rejected sample: "
++                        + (mLastRejectedSample.isEmpty() ? "none" : mLastRejectedSample));
++                pw.println("  evaluations: " + mEvaluationCount);
++                pw.println("  events: " + mEvents.size());
++                if (!mSimulatedValues.isEmpty()) {
++                    pw.println("  simulated overrides: " + mSimulatedValues);
++                }
++                pw.println();
++
++                pw.println("Snapshot");
++                for (DeviceHealthMetric metric : mLastSnapshot.getMetrics()) {
++                    pw.println("  " + metric.getId() + ": " + metric.getValue() + " "
++                            + metric.getUnit() + (metric.isSimulated() ? " (simulated)" : ""));
++                }
++                pw.println();
++
++                pw.println("Thresholds");
++                for (Map.Entry<String, PolicyEngine.Thresholds> entry
++                        : mPolicyEngine.getThresholds().entrySet()) {
++                    pw.println("  " + entry.getKey() + ": " + entry.getValue().describe());
++                }
++                pw.println();
++
++                pw.println("Recent Events");
++                if (mEvents.isEmpty()) {
++                    pw.println("  none");
++                } else {
++                    for (DeviceHealthEvent event : mEvents) {
++                        pw.println("  #" + event.getEventId() + " " + event.getMessage());
++                    }
++                }
++                pw.println();
++
++                pw.println("Last Error");
++                String lastError = daemonInfo.getLastError();
++                pw.println("  " + (lastError.isEmpty() ? "none" : lastError));
++                pw.println();
++
++                pw.println("Binder Calls");
++                List<String> statNames = new ArrayList<>(mCallStats.keySet());
++                Collections.sort(statNames);
++                if (statNames.isEmpty()) {
++                    pw.println("  none");
++                } else {
++                    for (String name : statNames) {
++                        pw.println("  " + name + ": " + mCallStats.get(name).describe());
++                    }
++                }
++            }
++        }
++    }
++
++    private final class DeviceHealthShellCommand extends ShellCommand {
++        @Override
++        public int onCommand(String cmd) {
++            if (!checkShellPermission()) {
++                getErrPrintWriter().println("Permission denied");
++                return -1;
++            }
++            if (cmd == null) {
++                return handleDefaultCommands(null);
++            }
++            switch (cmd) {
++                case "status":
++                    return runStatus();
++                case "history":
++                    return runHistory();
++                case "thresholds":
++                    return runThresholds();
++                case "simulate":
++                    return runSimulate();
++                case "stats":
++                    return runStats();
++                case "daemon-interval":
++                    return runDaemonInterval();
++                case "debug":
++                    return runDebug();
++                case "reset":
++                    return runReset();
++                case "self-test":
++                    return runSelfTest();
++                case "test-policy":
++                    return runPolicyTests();
++                default:
++                    return handleDefaultCommands(cmd);
++            }
++        }
++
++        @Override
++        public void onHelp() {
++            PrintWriter pw = getOutPrintWriter();
++            pw.println("Device health commands:");
++            pw.println("  help");
++            pw.println("    Print this help text.");
++            pw.println("  status");
++            pw.println("    Print the current state, metrics and daemon information.");
++            pw.println("  history [--limit N]");
++            pw.println("    Print recent health events (default 20, max 100).");
++            pw.println("  thresholds [set <metricId> <warnEnter> <warnClear> <critEnter>"
++                    + " <critClear> <debounce> | reset]");
++            pw.println("    Print or update warning/critical thresholds at runtime.");
++            pw.println("  simulate critical <metricId>");
++            pw.println("    Override a metric with a critical value for policy evaluation.");
++            pw.println("  simulate clear");
++            pw.println("    Clear simulated metric overrides.");
++            pw.println("  stats");
++            pw.println("    Print binder call counters.");
++            pw.println("  daemon-interval <ms|reset>");
++            pw.println("    Set the daemon sampling interval (500..30000ms, daemon v2+).");
++            pw.println("  debug stall <ms>");
++            pw.println("    Block the evaluation thread to exercise the watchdog.");
++            pw.println("  debug set-daemon-version <version|reset>");
++            pw.println("    Simulate an incompatible daemon interface version.");
++            pw.println("  reset");
++            pw.println("    Clear events and reset the policy state.");
++            pw.println("  self-test");
++            pw.println("    Run basic service diagnostics.");
++            pw.println("  test-policy");
++            pw.println("    Run deterministic policy engine checks.");
++        }
++
++        private boolean checkShellPermission() {
++            int uid = Binder.getCallingUid();
++            if (uid == Process.ROOT_UID || uid == Process.SHELL_UID) {
++                return true;
++            }
++            try {
++                getContext().enforceCallingOrSelfPermission(
++                        Manifest.permission.MANAGE_DEVICE_HEALTH, TAG);
++                return true;
++            } catch (SecurityException e) {
++                return false;
++            }
++        }
++
++        private int runStatus() {
++            refresh();
++            PrintWriter pw = getOutPrintWriter();
++            synchronized (mLock) {
++                if (mLastSnapshot == null) {
++                    pw.println("Device health service is not initialized");
++                    return 1;
++                }
++                long now = SystemClock.elapsedRealtime();
++                pw.println("state: "
++                        + PolicyEngine.severityName(mLastSnapshot.getOverallSeverity()));
++                pw.println("stale: " + mLastSnapshot.isStale());
++                pw.println("last update: "
++                        + Math.max(0, now - mLastSnapshot.getTimestampMs()) + "ms ago");
++                pw.println("daemon: " + (mDaemon != null ? "connected" : "unavailable")
++                        + " version=" + mLastSnapshot.getDaemonVersion()
++                        + " capabilities=0x"
++                        + Integer.toHexString(mLastSnapshot.getCapabilities()));
++                if (mDaemonVersionOverride >= 0) {
++                    pw.println("daemon version override: " + mDaemonVersionOverride + " (debug)");
++                }
++                pw.println("listeners: " + mListeners.getRegisteredCallbackCount());
++                pw.println("watchdog: " + (mEvaluationStallReported ? "STALLED" : "ok")
++                        + " (trips " + mWatchdogTrips.get()
++                        + ", daemon timeouts " + mDaemonTimeouts.get() + ")");
++                pw.println("last rejected sample: "
++                        + (mLastRejectedSample.isEmpty() ? "none" : mLastRejectedSample));
++                pw.println("events: " + mEvents.size());
++                if (!mSimulatedValues.isEmpty()) {
++                    pw.println("simulated: " + mSimulatedValues);
++                }
++                pw.println("metrics:");
++                for (DeviceHealthMetric metric : mLastSnapshot.getMetrics()) {
++                    pw.println("  " + metric.getId() + ": " + metric.getValue() + " "
++                            + metric.getUnit() + (metric.isSimulated() ? " (simulated)" : ""));
++                }
++            }
++            DeviceHealthDaemonInfo info = queryDaemonInfo();
++            pw.println("compatibility: " + compatibilityName(info.getCompatibility())
++                    + " (supported " + MIN_DAEMON_VERSION + ".." + MAX_DAEMON_VERSION + ")");
++            pw.println("last error: "
++                    + (info.getLastError().isEmpty() ? "none" : info.getLastError()));
++            return 0;
++        }
++
++        private int runHistory() {
++            int limit = 20;
++            String option;
++            while ((option = getNextOption()) != null) {
++                if ("--limit".equals(option) || "-l".equals(option)) {
++                    String value = getNextArg();
++                    if (value == null) {
++                        getErrPrintWriter().println("Missing value for " + option);
++                        return -1;
++                    }
++                    try {
++                        limit = Integer.parseInt(value);
++                    } catch (NumberFormatException e) {
++                        getErrPrintWriter().println("Invalid limit: " + value);
++                        return -1;
++                    }
++                } else {
++                    getErrPrintWriter().println("Unknown option: " + option);
++                    return -1;
++                }
++            }
++            if (limit <= 0) {
++                limit = 20;
++            }
++            limit = Math.min(limit, MAX_EVENTS);
++
++            List<DeviceHealthEvent> events = new ArrayList<>();
++            synchronized (mLock) {
++                for (DeviceHealthEvent event : mEvents) {
++                    if (events.size() >= limit) {
++                        break;
++                    }
++                    events.add(event);
++                }
++            }
++
++            PrintWriter pw = getOutPrintWriter();
++            if (events.isEmpty()) {
++                pw.println("No events");
++                return 0;
++            }
++            long now = SystemClock.elapsedRealtime();
++            for (DeviceHealthEvent event : events) {
++                pw.println("#" + event.getEventId() + " "
++                        + Math.max(0, now - event.getTimestampMs()) + "ms ago: "
++                        + event.getMessage());
++            }
++            return 0;
++        }
++
++        private int runThresholds() {
++            PrintWriter pw = getOutPrintWriter();
++            String action = getNextArg();
++            if (action == null) {
++                printThresholds(pw);
++                return 0;
++            }
++            if ("reset".equals(action)) {
++                mPolicyEngine.resetThresholds();
++                mPolicyEngine.reset();
++                refresh();
++                printThresholds(pw);
++                pw.println("Thresholds restored to defaults");
++                return 0;
++            }
++            if (!"set".equals(action)) {
++                getErrPrintWriter().println("Usage: cmd devicehealth thresholds [set <metricId>"
++                        + " <warnEnter> <warnClear> <critEnter> <critClear> <debounce> | reset]");
++                return -1;
++            }
++            String metricId = getNextArg();
++            if (metricId == null) {
++                getErrPrintWriter().println("Missing metric ID");
++                return -1;
++            }
++            String key = mPolicyEngine.thresholdKeyFor(metricId);
++            if (key == null) {
++                getErrPrintWriter().println("Unsupported metric: " + metricId);
++                getErrPrintWriter().println("Supported metrics: thermal.*, memory.pressure");
++                return -1;
++            }
++            float[] values = new float[4];
++            String[] names = {"warningEnter", "warningClear", "criticalEnter", "criticalClear"};
++            for (int i = 0; i < values.length; i++) {
++                String arg = getNextArg();
++                if (arg == null) {
++                    getErrPrintWriter().println("Missing " + names[i]);
++                    return -1;
++                }
++                try {
++                    values[i] = Float.parseFloat(arg);
++                } catch (NumberFormatException e) {
++                    getErrPrintWriter().println("Invalid " + names[i] + ": " + arg);
++                    return -1;
++                }
++            }
++            String debounceArg = getNextArg();
++            int debounceSamples;
++            try {
++                debounceSamples = Integer.parseInt(debounceArg);
++            } catch (NumberFormatException e) {
++                getErrPrintWriter().println("Missing or invalid debounce: " + debounceArg);
++                return -1;
++            }
++            String problem = PolicyEngine.validateThresholds(values[0], values[1], values[2],
++                    values[3], debounceSamples);
++            if (problem == null) {
++                problem = validateThresholdRange(key, values);
++            }
++            if (problem != null) {
++                getErrPrintWriter().println("Rejected: " + problem);
++                return -1;
++            }
++            if (isDaemonDegraded()) {
++                getErrPrintWriter().println(
++                        "Daemon interface is not supported; threshold changes are disabled");
++                return -1;
++            }
++            mPolicyEngine.setThresholds(key,
++                    new PolicyEngine.Thresholds(values[0], values[1], values[2], values[3],
++                            debounceSamples));
++            mPolicyEngine.reset();
++            refresh();
++            printThresholds(pw);
++            pw.println("Updated " + key + "; policy state reset for re-evaluation");
++            return 0;
++        }
++
++        private String validateThresholdRange(String key, float[] values) {
++            float min;
++            float max;
++            if ("thermal.".equals(key)) {
++                min = THERMAL_MIN_C;
++                max = THERMAL_MAX_C;
++            } else if ("memory.pressure".equals(key)) {
++                min = MEMORY_MIN_PERCENT;
++                max = MEMORY_MAX_PERCENT;
++            } else {
++                return null;
++            }
++            for (float value : values) {
++                if (value < min || value > max) {
++                    return "threshold " + value + " is outside " + key + " range ["
++                            + min + ", " + max + "]";
++                }
++            }
++            return null;
++        }
++
++        private void printThresholds(PrintWriter pw) {
++            for (Map.Entry<String, PolicyEngine.Thresholds> entry
++                    : mPolicyEngine.getThresholds().entrySet()) {
++                pw.println(entry.getKey() + ": " + entry.getValue().describe());
++            }
++        }
++
++        private int runSimulate() {
++            String kind = getNextArg();
++            if (kind == null) {
++                getErrPrintWriter().println(
++                        "Usage: cmd devicehealth simulate critical <metricId>|clear");
++                return -1;
++            }
++            if ("clear".equals(kind)) {
++                clearSimulatedMetrics();
++                getOutPrintWriter().println("Cleared simulated metric overrides");
++                return 0;
++            }
++            if (!"critical".equals(kind)) {
++                getErrPrintWriter().println("Unknown simulation: " + kind);
++                return -1;
++            }
++            String metricId = getNextArg();
++            if (metricId == null) {
++                getErrPrintWriter().println(
++                        "Usage: cmd devicehealth simulate critical <metricId>");
++                return -1;
++            }
++            PolicyEngine.Thresholds thresholds = mPolicyEngine.thresholdsFor(metricId);
++            if (thresholds == null) {
++                getErrPrintWriter().println("Unsupported metric: " + metricId);
++                getErrPrintWriter().println("Supported metrics: thermal.*, memory.pressure");
++                return -1;
++            }
++            if (isDaemonDegraded()) {
++                getErrPrintWriter().println(
++                        "Daemon interface is not supported; simulation is disabled");
++                return -1;
++            }
++            float value = thresholds.criticalEnter + 5.0f;
++            armCriticalSimulation(metricId);
++            getOutPrintWriter().println("Simulated " + metricId + " = " + value
++                    + "; CRITICAL is expected after " + (thresholds.debounceSamples * 2)
++                    + " samples (two state steps)");
++            return 0;
++        }
++
++        private int runStats() {
++            PrintWriter pw = getOutPrintWriter();
++            List<String> names = new ArrayList<>(mCallStats.keySet());
++            Collections.sort(names);
++            if (names.isEmpty()) {
++                pw.println("No calls recorded");
++                return 0;
++            }
++            for (String name : names) {
++                pw.println(name + ": " + mCallStats.get(name).describe());
++            }
++            return 0;
++        }
++
++        private int runDaemonInterval() {
++            String arg = getNextArg();
++            if (arg == null) {
++                getErrPrintWriter().println(
++                        "Usage: cmd devicehealth daemon-interval <ms|reset>");
++                return -1;
++            }
++            int requestedMs;
++            if ("reset".equals(arg)) {
++                requestedMs = 2000;
++            } else {
++                try {
++                    requestedMs = Integer.parseInt(arg);
++                } catch (NumberFormatException e) {
++                    getErrPrintWriter().println("Invalid interval: " + arg);
++                    return -1;
++                }
++                if (requestedMs < 500 || requestedMs > 30000) {
++                    getErrPrintWriter().println(
++                            "Interval must be between 500 and 30000 ms");
++                    return -1;
++                }
++            }
++
++            IDeviceHealthService daemon = getDaemon();
++            if (daemon == null) {
++                getErrPrintWriter().println("devicehealthd is not available");
++                return -1;
++            }
++            DaemonInfoResult info = fetchDaemonInfo(daemon);
++            int version = info.info != null
++                    ? effectiveDaemonVersion(info.info.interfaceVersion)
++                    : (mLastSnapshot != null ? mLastSnapshot.getDaemonVersion() : 0);
++            if (version < 2) {
++                getErrPrintWriter().println(
++                        "Requires daemon interface version 2, current is " + version);
++                return -1;
++            }
++            int appliedMs = setDaemonSamplingInterval(requestedMs);
++            if (appliedMs < 0) {
++                getErrPrintWriter().println("Failed to update the daemon sampling interval");
++                return -1;
++            }
++            getOutPrintWriter().println("Sampling interval set to " + appliedMs
++                    + "ms (requested " + requestedMs + "ms)");
++            return 0;
++        }
++
++        private int runDebug() {
++            String what = getNextArg();
++            if (what == null) {
++                getErrPrintWriter().println(
++                        "Usage: cmd devicehealth debug stall <ms>|set-daemon-version <version|reset>");
++                return -1;
++            }
++            if ("stall".equals(what)) {
++                String arg = getNextArg();
++                int durationMs = 20_000;
++                if (arg != null) {
++                    try {
++                        durationMs = Integer.parseInt(arg);
++                    } catch (NumberFormatException e) {
++                        getErrPrintWriter().println("Invalid duration: " + arg);
++                        return -1;
++                    }
++                }
++                if (durationMs <= 0 || durationMs > 60_000) {
++                    getErrPrintWriter().println("Duration must be between 1 and 60000 ms");
++                    return -1;
++                }
++                final int stallMs = durationMs;
++                mHandler.post(() -> SystemClock.sleep(stallMs));
++                getOutPrintWriter().println("Blocking the evaluation thread for " + durationMs
++                        + "ms; watchdog trips after " + WATCHDOG_STALL_MS + "ms");
++                return 0;
++            }
++            if ("set-daemon-version".equals(what)) {
++                String arg = getNextArg();
++                if (arg == null) {
++                    getErrPrintWriter().println(
++                            "Usage: cmd devicehealth debug set-daemon-version <version|reset>");
++                    return -1;
++                }
++                if ("reset".equals(arg)) {
++                    mDaemonVersionOverride = -1;
++                    getOutPrintWriter().println("Daemon version override cleared");
++                } else {
++                    int version;
++                    try {
++                        version = Integer.parseInt(arg);
++                    } catch (NumberFormatException e) {
++                        getErrPrintWriter().println("Invalid version: " + arg);
++                        return -1;
++                    }
++                    if (version < 0 || version > 1000) {
++                        getErrPrintWriter().println("Version must be between 0 and 1000");
++                        return -1;
++                    }
++                    mDaemonVersionOverride = version;
++                    getOutPrintWriter().println("Daemon version override set to " + version);
++                }
++                mPolicyEngine.reset();
++                refresh();
++                return 0;
++            }
++            getErrPrintWriter().println("Unknown debug command: " + what);
++            return -1;
++        }
++
++        private int runReset() {
++            List<Integer> notificationIds = new ArrayList<>();
++            synchronized (mLock) {
++                for (DeviceHealthEvent event : mEvents) {
++                    notificationIds.add(event.getEventId());
++                }
++                mEvents.clear();
++                mSimulatedValues.clear();
++                mPolicyEngine.reset();
++            }
++            refresh();
++            if (mNotificationManager != null && !notificationIds.isEmpty()) {
++                long token = Binder.clearCallingIdentity();
++                try {
++                    for (int id : notificationIds) {
++                        mNotificationManager.cancel(NOTIFICATION_TAG, id);
++                    }
++                } finally {
++                    Binder.restoreCallingIdentity(token);
++                }
++            }
++            getOutPrintWriter().println("Cleared events, simulated overrides and policy state");
++            return 0;
++        }
++
++        private int runPolicyTests() {
++            String report = PolicyEngineSelfTest.run();
++            getOutPrintWriter().println(report);
++            return report.endsWith("POLICY TESTS PASS") ? 0 : 1;
++        }
++
++        private int runSelfTest() {
++            PrintWriter pw = getOutPrintWriter();
++            boolean ok = true;
++
++            IDeviceHealthService daemon = getDaemon();
++            if (daemon == null) {
++                pw.println("FAIL daemon: devicehealthd is not registered");
++                ok = false;
++            } else {
++                SnapshotResult result = fetchSnapshot(daemon);
++                Snapshot snapshot = result.snapshot;
++                if (snapshot == null) {
++                    pw.println("FAIL daemon: "
++                            + (result.error == null ? "null snapshot" : result.error));
++                    ok = false;
++                } else {
++                    int version = effectiveDaemonVersion(snapshot.daemonVersion);
++                    int compatibility = compatibilityOf(version);
++                    if (compatibility == DeviceHealthDaemonInfo.COMPATIBILITY_TOO_OLD) {
++                        pw.println("FAIL compatibility: daemon version " + version
++                                + " is below " + MIN_DAEMON_VERSION + " (degraded mode)");
++                        ok = false;
++                    } else if (compatibility == DeviceHealthDaemonInfo.COMPATIBILITY_NEWER) {
++                        pw.println("WARN compatibility: daemon version " + version
++                                + " is newer than " + MAX_DAEMON_VERSION
++                                + " (unknown capabilities ignored)");
++                    } else {
++                        pw.println("PASS compatibility: daemon version " + version
++                                + " in " + MIN_DAEMON_VERSION + ".." + MAX_DAEMON_VERSION);
++                    }
++                    pw.println("PASS daemon: version=" + snapshot.daemonVersion
++                            + " capabilities=0x"
++                            + Integer.toHexString(snapshot.capabilities));
++                    int count = snapshot.metrics == null ? 0 : snapshot.metrics.length;
++                    if (count == 0) {
++                        pw.println("FAIL metrics: no samples reported");
++                        ok = false;
++                    } else {
++                        pw.println("PASS metrics: " + count + " sample(s)");
++                        boolean simulated = false;
++                        for (MetricSample sample : snapshot.metrics) {
++                            if (sample.simulated) {
++                                simulated = true;
++                                break;
++                            }
++                        }
++                        if (simulated) {
++                            pw.println("WARN metrics: at least one sample is simulated");
++                        }
++                    }
++                }
++            }
++
++            ensureNotificationChannel();
++            if (mNotificationManager != null && mChannelCreated) {
++                pw.println("PASS notification channel: " + CHANNEL_ID);
++            } else {
++                pw.println("FAIL notification channel: " + CHANNEL_ID);
++                ok = false;
++            }
++
++            if (mPolicyEngine.getThresholds().isEmpty()) {
++                pw.println("FAIL policy: no thresholds configured");
++                ok = false;
++            } else {
++                pw.println("PASS policy: " + mPolicyEngine.getThresholds().size()
++                        + " threshold group(s)");
++            }
++
++            long evaluationAgeMs = mLastEvaluationEndMs <= 0 ? -1
++                    : SystemClock.elapsedRealtime() - mLastEvaluationEndMs;
++            if (mWatchdogTrips.get() > 0) {
++                pw.println("WARN watchdog: " + mWatchdogTrips.get()
++                        + " stall(s) detected, last evaluation " + evaluationAgeMs + "ms ago");
++            } else {
++                pw.println("PASS watchdog: last evaluation " + evaluationAgeMs + "ms ago");
++            }
++
++            if (mLastRejectedSample.isEmpty()) {
++                pw.println("PASS validation: all samples in range");
++            } else {
++                pw.println("WARN validation: last rejected sample " + mLastRejectedSample);
++            }
++            pw.println("INFO listeners: " + mListeners.getRegisteredCallbackCount() + " active");
++
++            synchronized (mLock) {
++                if (mEvents.size() > MAX_EVENTS) {
++                    pw.println("FAIL events: store exceeds " + MAX_EVENTS);
++                    ok = false;
++                } else {
++                    pw.println("PASS events: " + mEvents.size() + " buffered");
++                }
++            }
++
++            pw.println(ok ? "SELF-TEST PASS" : "SELF-TEST FAIL");
++            return ok ? 0 : 1;
++        }
++    }
++
++    private void enforcePermission() {
++        getContext().enforceCallingOrSelfPermission(Manifest.permission.MANAGE_DEVICE_HEALTH,
++                TAG);
++    }
++}
+diff --git a/services/core/java/com/android/server/devicehealth/PolicyEngine.java b/services/core/java/com/android/server/devicehealth/PolicyEngine.java
+new file mode 100644
+index 00000000..102443c9
+--- /dev/null
++++ b/services/core/java/com/android/server/devicehealth/PolicyEngine.java
+@@ -0,0 +1,399 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.server.devicehealth;
++
++import android.devicehealth.DeviceHealthMetric;
++import android.devicehealth.DeviceHealthSnapshot;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.LinkedHashMap;
++import java.util.List;
++import java.util.Locale;
++import java.util.Map;
++
++/**
++ * Threshold, hysteresis, debounce and staleness policy for device health metrics.
++ *
++ * <p>Each metric owns an independent state machine. Events are only produced on
++ * state transitions, and a metric that stops producing fresh samples moves to
++ * {@code STALE} and eventually {@code UNKNOWN}.
++ */
++final class PolicyEngine {
++    static final long STALE_AFTER_MS = 10_000;
++    static final long UNKNOWN_AFTER_MS = 30_000;
++    private static final long MIN_EVENT_INTERVAL_MS = 2_000;
++
++    static final class Thresholds {
++        final float warningEnter;
++        final float warningClear;
++        final float criticalEnter;
++        final float criticalClear;
++        final int debounceSamples;
++
++        Thresholds(float warningEnter, float warningClear, float criticalEnter,
++                float criticalClear, int debounceSamples) {
++            this.warningEnter = warningEnter;
++            this.warningClear = warningClear;
++            this.criticalEnter = criticalEnter;
++            this.criticalClear = criticalClear;
++            this.debounceSamples = debounceSamples;
++        }
++
++        String describe() {
++            return String.format(Locale.US,
++                    "warn %.1f/%.1f crit %.1f/%.1f debounce %d",
++                    warningEnter, warningClear, criticalEnter, criticalClear, debounceSamples);
++        }
++    }
++
++    static final class Transition {
++        final String metricId;
++        final int fromSeverity;
++        final int toSeverity;
++        final float value;
++        final float threshold;
++        final String message;
++
++        Transition(String metricId, int fromSeverity, int toSeverity, float value, float threshold,
++                String message) {
++            this.metricId = metricId;
++            this.fromSeverity = fromSeverity;
++            this.toSeverity = toSeverity;
++            this.value = value;
++            this.threshold = threshold;
++            this.message = message;
++        }
++    }
++
++    static final class Result {
++        final int overallSeverity;
++        final List<Transition> transitions;
++
++        Result(int overallSeverity, List<Transition> transitions) {
++            this.overallSeverity = overallSeverity;
++            this.transitions = transitions;
++        }
++    }
++
++    private static final class MetricState {
++        int severity = DeviceHealthSnapshot.SEVERITY_UNKNOWN;
++        int pendingSeverity = DeviceHealthSnapshot.SEVERITY_UNKNOWN;
++        int pendingCount;
++        long lastEventMs;
++        long lastValueTimestampMs = Long.MIN_VALUE;
++        boolean hasValue;
++    }
++
++    private final Map<String, Thresholds> mDefaults = new LinkedHashMap<>();
++    private final Map<String, Thresholds> mThresholds = new LinkedHashMap<>();
++    private final Map<String, MetricState> mStates = new HashMap<>();
++    private long mLastValidSampleMs = -1;
++
++    PolicyEngine() {
++        mDefaults.put("thermal.", new Thresholds(65.0f, 60.0f, 75.0f, 70.0f, 3));
++        mDefaults.put("memory.pressure", new Thresholds(80.0f, 75.0f, 92.0f, 85.0f, 3));
++        mThresholds.putAll(mDefaults);
++    }
++
++    synchronized Map<String, Thresholds> getThresholds() {
++        return new LinkedHashMap<>(mThresholds);
++    }
++
++    /**
++     * Validates a threshold configuration and returns a human-readable error, or
++     * {@code null} when the configuration is usable.
++     */
++    static String validateThresholds(float warningEnter, float warningClear, float criticalEnter,
++            float criticalClear, int debounceSamples) {
++        if (!Float.isFinite(warningEnter) || !Float.isFinite(warningClear)
++                || !Float.isFinite(criticalEnter) || !Float.isFinite(criticalClear)) {
++            return "thresholds must be finite numbers";
++        }
++        if (warningClear >= warningEnter) {
++            return "warningClear (" + warningClear + ") must be lower than warningEnter ("
++                    + warningEnter + ")";
++        }
++        if (criticalClear >= criticalEnter) {
++            return "criticalClear (" + criticalClear + ") must be lower than criticalEnter ("
++                    + criticalEnter + ")";
++        }
++        if (criticalEnter < warningEnter) {
++            return "criticalEnter (" + criticalEnter + ") must not be lower than warningEnter ("
++                    + warningEnter + ")";
++        }
++        if (debounceSamples < 1 || debounceSamples > 20) {
++            return "debounce must be between 1 and 20 samples";
++        }
++        return null;
++    }
++
++    synchronized void setThresholds(String key, Thresholds thresholds) {
++        mThresholds.put(key, thresholds);
++    }
++
++    synchronized void resetThresholds() {
++        mThresholds.clear();
++        mThresholds.putAll(mDefaults);
++    }
++
++    /**
++     * Evaluates a fresh snapshot. Metrics without a configured threshold stay
++     * {@code NORMAL} and never generate events.
++     */
++    synchronized Result evaluate(List<DeviceHealthMetric> metrics, long nowMs) {
++        List<Transition> transitions = new ArrayList<>();
++        if (metrics == null || metrics.isEmpty()) {
++            return onDataUnavailable(nowMs);
++        }
++
++        boolean anyUnknown = false;
++        boolean anyStale = false;
++        boolean anyCritical = false;
++        boolean anyWarning = false;
++
++        for (DeviceHealthMetric metric : metrics) {
++            Thresholds thresholds = thresholdsFor(metric.getId());
++            if (thresholds == null) {
++                continue;
++            }
++            MetricState state = mStates.computeIfAbsent(metric.getId(), key -> new MetricState());
++            long timestampMs = metric.getTimestampMs();
++            if (timestampMs > mLastValidSampleMs) {
++                mLastValidSampleMs = timestampMs;
++            }
++
++            long ageMs = nowMs - timestampMs;
++            if (ageMs >= UNKNOWN_AFTER_MS) {
++                applyImmediate(state, metric.getId(), DeviceHealthSnapshot.SEVERITY_UNKNOWN, 0.0f,
++                        0.0f, "no fresh sample for " + ageMs / 1000 + "s", nowMs, transitions);
++            } else if (ageMs >= STALE_AFTER_MS) {
++                applyImmediate(state, metric.getId(), DeviceHealthSnapshot.SEVERITY_STALE, 0.0f,
++                        0.0f, "no fresh sample for " + ageMs / 1000 + "s", nowMs, transitions);
++            } else if (!state.hasValue || timestampMs != state.lastValueTimestampMs) {
++                state.hasValue = true;
++                state.lastValueTimestampMs = timestampMs;
++                evaluateSample(state, metric, thresholds, nowMs, transitions);
++            }
++
++            switch (state.severity) {
++                case DeviceHealthSnapshot.SEVERITY_CRITICAL:
++                    anyCritical = true;
++                    break;
++                case DeviceHealthSnapshot.SEVERITY_WARNING:
++                    anyWarning = true;
++                    break;
++                case DeviceHealthSnapshot.SEVERITY_STALE:
++                    anyStale = true;
++                    break;
++                case DeviceHealthSnapshot.SEVERITY_UNKNOWN:
++                    anyUnknown = true;
++                    break;
++                default:
++                    break;
++            }
++        }
++
++        int overall;
++        if (anyCritical) {
++            overall = DeviceHealthSnapshot.SEVERITY_CRITICAL;
++        } else if (anyUnknown) {
++            overall = DeviceHealthSnapshot.SEVERITY_UNKNOWN;
++        } else if (anyStale) {
++            overall = DeviceHealthSnapshot.SEVERITY_STALE;
++        } else if (anyWarning) {
++            overall = DeviceHealthSnapshot.SEVERITY_WARNING;
++        } else {
++            overall = DeviceHealthSnapshot.SEVERITY_NORMAL;
++        }
++        return new Result(overall, transitions);
++    }
++
++    /**
++     * Handles the case where the daemon is unreachable or returns no metrics.
++     * Known metrics move to {@code STALE}, then {@code UNKNOWN} after a timeout.
++     */
++    synchronized Result onDataUnavailable(long nowMs) {
++        List<Transition> transitions = new ArrayList<>();
++        long ageMs = mLastValidSampleMs < 0 ? Long.MAX_VALUE
++                : Math.max(0, nowMs - mLastValidSampleMs);
++        int target = mLastValidSampleMs < 0 || ageMs >= UNKNOWN_AFTER_MS
++                ? DeviceHealthSnapshot.SEVERITY_UNKNOWN
++                : DeviceHealthSnapshot.SEVERITY_STALE;
++        String detail = mLastValidSampleMs < 0
++                ? "no samples received"
++                : "no fresh sample for " + ageMs / 1000 + "s";
++
++        for (Map.Entry<String, MetricState> entry : mStates.entrySet()) {
++            applyImmediate(entry.getValue(), entry.getKey(), target, 0.0f, 0.0f, detail, nowMs,
++                    transitions);
++        }
++        return new Result(target, transitions);
++    }
++
++    private void evaluateSample(MetricState state, DeviceHealthMetric metric, Thresholds thresholds,
++            long nowMs, List<Transition> transitions) {
++        int from = state.severity;
++        if (from == DeviceHealthSnapshot.SEVERITY_UNKNOWN
++                || from == DeviceHealthSnapshot.SEVERITY_STALE) {
++            // First sample or recovery: transition immediately to the observed severity.
++            int target = recoverState(metric.getValue(), thresholds);
++            applyImmediate(state, metric.getId(), target, metric.getValue(),
++                    thresholdForTransition(from, target, thresholds),
++                    formatSample(metric, from, target, thresholds), nowMs, transitions);
++            return;
++        }
++
++        int target = desiredState(from, metric.getValue(), thresholds);
++        if (target == from) {
++            state.pendingSeverity = target;
++            state.pendingCount = 0;
++            return;
++        }
++
++        if (state.pendingSeverity == target) {
++            state.pendingCount++;
++        } else {
++            state.pendingSeverity = target;
++            state.pendingCount = 1;
++        }
++        if (state.pendingCount >= thresholds.debounceSamples) {
++            applyImmediate(state, metric.getId(), target, metric.getValue(),
++                    thresholdForTransition(from, target, thresholds),
++                    formatSample(metric, from, target, thresholds), nowMs, transitions);
++        }
++    }
++
++    /**
++     * One step at a time, matching the designed state machine: NORMAL to WARNING
++     * to CRITICAL, and the reverse on the way down.
++     */
++    private static int desiredState(int current, float value, Thresholds thresholds) {
++        switch (current) {
++            case DeviceHealthSnapshot.SEVERITY_CRITICAL:
++                return value >= thresholds.criticalClear
++                        ? DeviceHealthSnapshot.SEVERITY_CRITICAL
++                        : DeviceHealthSnapshot.SEVERITY_WARNING;
++            case DeviceHealthSnapshot.SEVERITY_WARNING:
++                if (value >= thresholds.criticalEnter) {
++                    return DeviceHealthSnapshot.SEVERITY_CRITICAL;
++                }
++                return value >= thresholds.warningClear
++                        ? DeviceHealthSnapshot.SEVERITY_WARNING
++                        : DeviceHealthSnapshot.SEVERITY_NORMAL;
++            default:
++                return value >= thresholds.warningEnter
++                        ? DeviceHealthSnapshot.SEVERITY_WARNING
++                        : DeviceHealthSnapshot.SEVERITY_NORMAL;
++        }
++    }
++
++    private static int recoverState(float value, Thresholds thresholds) {
++        if (value >= thresholds.criticalEnter) {
++            return DeviceHealthSnapshot.SEVERITY_CRITICAL;
++        }
++        if (value >= thresholds.warningEnter) {
++            return DeviceHealthSnapshot.SEVERITY_WARNING;
++        }
++        return DeviceHealthSnapshot.SEVERITY_NORMAL;
++    }
++
++    private static float thresholdForTransition(int from, int to, Thresholds thresholds) {
++        switch (to) {
++            case DeviceHealthSnapshot.SEVERITY_CRITICAL:
++                return thresholds.criticalEnter;
++            case DeviceHealthSnapshot.SEVERITY_WARNING:
++                return from == DeviceHealthSnapshot.SEVERITY_CRITICAL
++                        ? thresholds.criticalClear : thresholds.warningEnter;
++            case DeviceHealthSnapshot.SEVERITY_NORMAL:
++                return thresholds.warningClear;
++            default:
++                return 0.0f;
++        }
++    }
++
++    private void applyImmediate(MetricState state, String metricId, int toSeverity, float value,
++            float threshold, String detail, long nowMs, List<Transition> transitions) {
++        int from = state.severity;
++        if (from == toSeverity) {
++            return;
++        }
++        state.severity = toSeverity;
++        state.pendingSeverity = toSeverity;
++        state.pendingCount = 0;
++
++        // The first normal sample after boot is not interesting enough for the history.
++        if (from == DeviceHealthSnapshot.SEVERITY_UNKNOWN
++                && toSeverity == DeviceHealthSnapshot.SEVERITY_NORMAL) {
++            return;
++        }
++        if (state.lastEventMs != 0
++                && nowMs - state.lastEventMs < MIN_EVENT_INTERVAL_MS) {
++            return;
++        }
++        state.lastEventMs = nowMs;
++        String message = String.format(Locale.US, "%s: %s -> %s (%s)", metricId,
++                severityName(from), severityName(toSeverity), detail);
++        transitions.add(new Transition(metricId, from, toSeverity, value, threshold, message));
++    }
++
++    synchronized void reset() {
++        mStates.clear();
++        mLastValidSampleMs = -1;
++    }
++
++    /**
++     * Maps a concrete metric ID to the threshold group that governs it, or {@code null}
++     * when the metric has no configured thresholds.
++     */
++    synchronized String thresholdKeyFor(String metricId) {
++        if (metricId == null) {
++            return null;
++        }
++        if (metricId.startsWith("thermal.")) {
++            return mThresholds.containsKey("thermal.") ? "thermal." : null;
++        }
++        return mThresholds.containsKey(metricId) ? metricId : null;
++    }
++
++    synchronized Thresholds thresholdsFor(String metricId) {
++        String key = thresholdKeyFor(metricId);
++        return key == null ? null : mThresholds.get(key);
++    }
++
++    private static String formatSample(DeviceHealthMetric metric, int from, int to,
++            Thresholds thresholds) {
++        float threshold = thresholdForTransition(from, to, thresholds);
++        return String.format(Locale.US, "%.1f %s, threshold %.1f", metric.getValue(),
++                metric.getUnit(), threshold);
++    }
++
++    static String severityName(int severity) {
++        switch (severity) {
++            case DeviceHealthSnapshot.SEVERITY_NORMAL:
++                return "NORMAL";
++            case DeviceHealthSnapshot.SEVERITY_WARNING:
++                return "WARNING";
++            case DeviceHealthSnapshot.SEVERITY_CRITICAL:
++                return "CRITICAL";
++            case DeviceHealthSnapshot.SEVERITY_STALE:
++                return "STALE";
++            default:
++                return "UNKNOWN";
++        }
++    }
++}
+diff --git a/services/core/java/com/android/server/devicehealth/PolicyEngineSelfTest.java b/services/core/java/com/android/server/devicehealth/PolicyEngineSelfTest.java
+new file mode 100644
+index 00000000..bfb91e08
+--- /dev/null
++++ b/services/core/java/com/android/server/devicehealth/PolicyEngineSelfTest.java
+@@ -0,0 +1,178 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.server.devicehealth;
++
++import android.devicehealth.DeviceHealthMetric;
++import android.devicehealth.DeviceHealthSnapshot;
++
++import java.util.Collections;
++import java.util.List;
++
++/**
++ * Deterministic policy checks that run inside the service.
++ *
++ * <p>These cover debounce, hysteresis, escalation, staleness and validation without
++ * requiring a device test harness. Run them with {@code cmd devicehealth test-policy}.
++ */
++final class PolicyEngineSelfTest {
++    private static final long START_MS = 100_000;
++    private static final long SAMPLE_INTERVAL_MS = 1_000;
++
++    private final StringBuilder mReport = new StringBuilder();
++    private boolean mOk = true;
++
++    private PolicyEngineSelfTest() {
++    }
++
++    static String run() {
++        PolicyEngineSelfTest suite = new PolicyEngineSelfTest();
++        suite.testFirstSampleIsQuiet();
++        suite.testDebounceAndHysteresis();
++        suite.testCriticalEscalation();
++        suite.testStaleAndUnknown();
++        suite.testThresholdValidation();
++        suite.testEventRateLimit();
++        return suite.mReport.append(suite.mOk ? "POLICY TESTS PASS" : "POLICY TESTS FAIL")
++                .toString();
++    }
++
++    private void testFirstSampleIsQuiet() {
++        PolicyEngine engine = new PolicyEngine();
++        PolicyEngine.Result result = engine.evaluate(thermal(42.0f, START_MS), START_MS);
++        check("first normal sample produces no event", result.transitions.isEmpty());
++        check("first normal sample reports NORMAL",
++                result.overallSeverity == DeviceHealthSnapshot.SEVERITY_NORMAL);
++    }
++
++    private void testDebounceAndHysteresis() {
++        PolicyEngine engine = new PolicyEngine();
++        long now = START_MS;
++        engine.evaluate(thermal(42.0f, now), now);
++
++        int transitions = 0;
++        for (int i = 1; i <= 2; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            transitions += engine.evaluate(thermal(66.0f, now), now).transitions.size();
++        }
++        check("debounce holds warning before 3 samples", transitions == 0);
++
++        now += SAMPLE_INTERVAL_MS;
++        PolicyEngine.Result warning = engine.evaluate(thermal(66.0f, now), now);
++        check("warning after 3 samples", warning.transitions.size() == 1
++                && warning.transitions.get(0).toSeverity
++                == DeviceHealthSnapshot.SEVERITY_WARNING);
++
++        transitions = 0;
++        for (int i = 1; i <= 2; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            transitions += engine.evaluate(thermal(58.0f, now), now).transitions.size();
++        }
++        check("debounce holds recovery before 3 samples", transitions == 0);
++
++        now += SAMPLE_INTERVAL_MS;
++        PolicyEngine.Result recovered = engine.evaluate(thermal(58.0f, now), now);
++        check("hysteresis clears warning below warningClear", recovered.transitions.size() == 1
++                && recovered.transitions.get(0).toSeverity
++                == DeviceHealthSnapshot.SEVERITY_NORMAL);
++    }
++
++    private void testCriticalEscalation() {
++        PolicyEngine engine = new PolicyEngine();
++        long now = START_MS;
++        engine.evaluate(thermal(42.0f, now), now);
++
++        PolicyEngine.Result first = null;
++        for (int i = 0; i < 3; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            first = engine.evaluate(thermal(76.0f, now), now);
++        }
++        check("temperature escalates to WARNING first", first != null
++                && first.transitions.size() == 1
++                && first.transitions.get(0).toSeverity
++                == DeviceHealthSnapshot.SEVERITY_WARNING);
++
++        PolicyEngine.Result second = null;
++        for (int i = 0; i < 3; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            second = engine.evaluate(thermal(76.0f, now), now);
++        }
++        check("temperature escalates WARNING to CRITICAL", second != null
++                && second.transitions.size() == 1
++                && second.transitions.get(0).fromSeverity
++                == DeviceHealthSnapshot.SEVERITY_WARNING
++                && second.transitions.get(0).toSeverity
++                == DeviceHealthSnapshot.SEVERITY_CRITICAL);
++    }
++
++    private void testStaleAndUnknown() {
++        PolicyEngine engine = new PolicyEngine();
++        List<DeviceHealthMetric> metrics = thermal(42.0f, START_MS);
++        engine.evaluate(metrics, START_MS);
++
++        PolicyEngine.Result stale = engine.evaluate(metrics, START_MS + 11_000);
++        check("sample ages into STALE after 10s", stale.transitions.size() == 1
++                && stale.transitions.get(0).toSeverity
++                == DeviceHealthSnapshot.SEVERITY_STALE);
++
++        PolicyEngine.Result unknown = engine.evaluate(metrics, START_MS + 31_000);
++        check("stale sample ages into UNKNOWN after 30s", unknown.transitions.size() == 1
++                && unknown.transitions.get(0).toSeverity
++                == DeviceHealthSnapshot.SEVERITY_UNKNOWN);
++    }
++
++    private void testThresholdValidation() {
++        check("valid thresholds accepted",
++                PolicyEngine.validateThresholds(65.0f, 60.0f, 75.0f, 70.0f, 3) == null);
++        check("inverted warning thresholds rejected",
++                PolicyEngine.validateThresholds(60.0f, 65.0f, 75.0f, 70.0f, 3) != null);
++        check("inverted critical thresholds rejected",
++                PolicyEngine.validateThresholds(65.0f, 60.0f, 70.0f, 75.0f, 3) != null);
++        check("critical below warning rejected",
++                PolicyEngine.validateThresholds(70.0f, 65.0f, 60.0f, 55.0f, 3) != null);
++        check("zero debounce rejected",
++                PolicyEngine.validateThresholds(65.0f, 60.0f, 75.0f, 70.0f, 0) != null);
++        check("debounce above 20 rejected",
++                PolicyEngine.validateThresholds(65.0f, 60.0f, 75.0f, 70.0f, 21) != null);
++    }
++
++    private void testEventRateLimit() {
++        PolicyEngine engine = new PolicyEngine();
++        engine.setThresholds("thermal.", new PolicyEngine.Thresholds(65.0f, 60.0f, 75.0f, 70.0f, 1));
++        long now = START_MS;
++        engine.evaluate(thermal(42.0f, now), now);
++
++        now += SAMPLE_INTERVAL_MS;
++        PolicyEngine.Result warning = engine.evaluate(thermal(66.0f, now), now);
++        check("single-sample debounce produces warning", warning.transitions.size() == 1);
++
++        now += SAMPLE_INTERVAL_MS;
++        PolicyEngine.Result suppressed = engine.evaluate(thermal(76.0f, now), now);
++        check("events within 2s are rate limited", suppressed.transitions.isEmpty());
++    }
++
++    private static List<DeviceHealthMetric> thermal(float value, long timestampMs) {
++        return Collections.singletonList(new DeviceHealthMetric("thermal.cpu", "CPU", value, "C",
++                timestampMs, /*simulated=*/false));
++    }
++
++    private void check(String name, boolean condition) {
++        if (!condition) {
++            mOk = false;
++        }
++        mReport.append(condition ? "PASS " : "FAIL ").append(name).append('\n');
++    }
++}
+diff --git a/services/java/com/android/server/SystemServer.java b/services/java/com/android/server/SystemServer.java
+index e19f08cb..7859fc72 100644
+--- a/services/java/com/android/server/SystemServer.java
++++ b/services/java/com/android/server/SystemServer.java
+@@ -131,6 +131,7 @@ import com.android.server.contentcapture.ContentCaptureManagerInternal;
+ import com.android.server.coverage.CoverageService;
+ import com.android.server.cpu.CpuMonitorService;
+ import com.android.server.criticalevents.CriticalEventLog;
++import com.android.server.devicehealth.DeviceHealthManagerService;
+ import com.android.server.devicepolicy.DevicePolicyManagerService;
+ import com.android.server.devicestate.DeviceStateManagerService;
+ import com.android.server.display.DisplayManagerService;
+@@ -1405,6 +1406,10 @@ public final class SystemServer implements Dumpable {
+         mSystemServiceManager.startService(BatteryService.class);
+         t.traceEnd();
+ 
++        t.traceBegin("StartDeviceHealthManagerService");
++        mSystemServiceManager.startService(DeviceHealthManagerService.class);
++        t.traceEnd();
++
+         // Tracks application usage stats.
+         t.traceBegin("StartUsageService");
+         mSystemServiceManager.startService(UsageStatsService.class);
