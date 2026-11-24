@@ -145,6 +145,7 @@ if [ "$SLOW" = 1 ]; then
     sleep 8
     dump=$(sh dumpsys devicehealth)
     matches "watchdog trips recorded" "$dump" "trips [1-9]"
+    matches "watchdog auto-recovery recorded" "$dump" "recoveries [1-9]"
     out=$(sh logcat -d -s DeviceHealthService)
     contains "watchdog logs recovery" "$out" "Watchdog: evaluation loop recovered"
 

@@ -1315,10 +1315,10 @@ index 5fe4be72..4757bb56 100644
          "android.hardware.authsecret-V1-java",
 diff --git a/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
 new file mode 100644
-index 00000000..4a584da8
+index 00000000..1ce8dddd
 --- /dev/null
 +++ b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
-@@ -0,0 +1,1698 @@
+@@ -0,0 +1,1749 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1412,6 +1412,7 @@ index 00000000..4a584da8
 +    private static final long DAEMON_CALL_TIMEOUT_MS = 1_500;
 +    private static final long WATCHDOG_INTERVAL_MS = 5_000;
 +    private static final long WATCHDOG_STALL_MS = 15_000;
++    private static final long WATCHDOG_RECOVERY_COOLDOWN_MS = 30_000;
 +    private static final int MIN_DAEMON_VERSION = 1;
 +    private static final int MAX_DAEMON_VERSION = 2;
 +    private static final int KNOWN_DAEMON_CAPABILITIES = 0x3;
@@ -1440,9 +1441,12 @@ index 00000000..4a584da8
 +            });
 +    private final AtomicInteger mDaemonTimeouts = new AtomicInteger();
 +    private final AtomicInteger mWatchdogTrips = new AtomicInteger();
++    private final AtomicInteger mWatchdogRecoveries = new AtomicInteger();
++    private final AtomicInteger mEvaluationGeneration = new AtomicInteger();
 +
 +    private volatile long mLastEvaluationEndMs;
 +    private volatile long mLastEvaluationDurationMs;
++    private volatile long mLastWatchdogRecoveryMs;
 +    private volatile int mDaemonVersionOverride = -1;
 +    private volatile boolean mEvaluationStallReported;
 +    private volatile String mLastRejectedSample = "";
@@ -1454,8 +1458,8 @@ index 00000000..4a584da8
 +    private boolean mChannelCreated;
 +    private int mNextEventId = 1;
 +
-+    private HandlerThread mHandlerThread;
-+    private Handler mHandler;
++    private volatile HandlerThread mHandlerThread;
++    private volatile Handler mHandler;
 +    private boolean mEvaluationStarted;
 +
 +    private DeviceHealthSnapshot mLastSnapshot;
@@ -1464,15 +1468,29 @@ index 00000000..4a584da8
 +    private int mEvaluationCount;
 +    private int mLastUnknownCapabilities;
 +
-+    private final Runnable mEvaluationRunnable = new Runnable() {
++    /**
++     * One instance drives a single evaluation loop. The generation check prevents an old
++     * loop from rescheduling itself after the watchdog replaced its handler thread.
++     */
++    private final class EvaluationRunnable implements Runnable {
++        private final int mGeneration;
++
++        EvaluationRunnable(int generation) {
++            mGeneration = generation;
++        }
++
 +        @Override
 +        public void run() {
++            if (mGeneration != mEvaluationGeneration.get()) {
++                return;
++            }
 +            refresh();
-+            if (mHandler != null) {
-+                mHandler.postDelayed(this, EVALUATION_INTERVAL_MS);
++            Handler handler = mHandler;
++            if (handler != null && mGeneration == mEvaluationGeneration.get()) {
++                handler.postDelayed(this, EVALUATION_INTERVAL_MS);
 +            }
 +        }
-+    };
++    }
 +
 +    public DeviceHealthManagerService(Context context) {
 +        super(context);
@@ -1500,7 +1518,8 @@ index 00000000..4a584da8
 +            return;
 +        }
 +        mEvaluationStarted = true;
-+        mHandler.post(mEvaluationRunnable);
++        final int generation = mEvaluationGeneration.incrementAndGet();
++        mHandler.post(new EvaluationRunnable(generation));
 +        mWatchdogExecutor.scheduleWithFixedDelay(this::checkWatchdog, WATCHDOG_INTERVAL_MS,
 +                WATCHDOG_INTERVAL_MS, TimeUnit.MILLISECONDS);
 +        Slog.i(TAG, "Device health evaluation loop started (daemon versions "
@@ -1508,9 +1527,31 @@ index 00000000..4a584da8
 +    }
 +
 +    /**
-+     * Runs on the watchdog thread and reports when the evaluation handler stops making
-+     * progress. Binder calls to the daemon are bounded by {@link #DAEMON_CALL_TIMEOUT_MS},
-+     * so a stall here usually points at a blocked system_server thread.
++     * Replaces the evaluation handler thread. The old thread is asked to quit, and its loop
++     * cannot reschedule itself because the generation has changed.
++     */
++    private void restartEvaluationLoop(String reason) {
++        HandlerThread oldThread = mHandlerThread;
++        HandlerThread newThread = new HandlerThread("DeviceHealth");
++        newThread.start();
++        Handler newHandler = new Handler(newThread.getLooper());
++        final int generation = mEvaluationGeneration.incrementAndGet();
++        mHandlerThread = newThread;
++        mHandler = newHandler;
++        mLastEvaluationEndMs = SystemClock.elapsedRealtime();
++        // Let the next watchdog pass log the recovery once the new loop makes progress.
++        mEvaluationStallReported = true;
++        mWatchdogRecoveries.incrementAndGet();
++        newHandler.post(new EvaluationRunnable(generation));
++        if (oldThread != null) {
++            oldThread.quitSafely();
++        }
++        Slog.w(TAG, "Watchdog: restarted evaluation loop (" + reason + ")");
++    }
++
++    /**
++     * Runs on the watchdog thread. A stalled evaluation loop is restarted on a fresh
++     * HandlerThread, with a cooldown so a persistent deadlock cannot cause thread churn.
 +     */
 +    private void checkWatchdog() {
 +        if (!mEvaluationStarted) {
@@ -1526,6 +1567,13 @@ index 00000000..4a584da8
 +                mEvaluationStallReported = true;
 +                mWatchdogTrips.incrementAndGet();
 +                Slog.e(TAG, "Watchdog: evaluation loop stalled for " + ageMs + "ms");
++                long now = SystemClock.elapsedRealtime();
++                if (now - mLastWatchdogRecoveryMs >= WATCHDOG_RECOVERY_COOLDOWN_MS) {
++                    mLastWatchdogRecoveryMs = now;
++                    restartEvaluationLoop("stalled " + ageMs + "ms");
++                } else {
++                    Slog.w(TAG, "Watchdog: recovery skipped, cooldown active");
++                }
 +            }
 +        } else if (mEvaluationStallReported) {
 +            mEvaluationStallReported = false;
@@ -2381,6 +2429,7 @@ index 00000000..4a584da8
 +                        + " (last evaluation took " + mLastEvaluationDurationMs
 +                        + "ms, " + (mLastEvaluationEndMs <= 0 ? -1 : now - mLastEvaluationEndMs)
 +                        + "ms ago, trips " + mWatchdogTrips.get()
++                        + ", recoveries " + mWatchdogRecoveries.get()
 +                        + ", daemon timeouts " + mDaemonTimeouts.get() + ")");
 +                pw.println("  last rejected sample: "
 +                        + (mLastRejectedSample.isEmpty() ? "none" : mLastRejectedSample));
@@ -2541,6 +2590,7 @@ index 00000000..4a584da8
 +                pw.println("listeners: " + mListeners.getRegisteredCallbackCount());
 +                pw.println("watchdog: " + (mEvaluationStallReported ? "STALLED" : "ok")
 +                        + " (trips " + mWatchdogTrips.get()
++                        + ", recoveries " + mWatchdogRecoveries.get()
 +                        + ", daemon timeouts " + mDaemonTimeouts.get() + ")");
 +                pw.println("last rejected sample: "
 +                        + (mLastRejectedSample.isEmpty() ? "none" : mLastRejectedSample));
@@ -2986,7 +3036,8 @@ index 00000000..4a584da8
 +                    : SystemClock.elapsedRealtime() - mLastEvaluationEndMs;
 +            if (mWatchdogTrips.get() > 0) {
 +                pw.println("WARN watchdog: " + mWatchdogTrips.get()
-+                        + " stall(s) detected, last evaluation " + evaluationAgeMs + "ms ago");
++                        + " stall(s) detected, " + mWatchdogRecoveries.get()
++                        + " recovery restart(s), last evaluation " + evaluationAgeMs + "ms ago");
 +            } else {
 +                pw.println("PASS watchdog: last evaluation " + evaluationAgeMs + "ms ago");
 +            }

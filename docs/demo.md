@@ -78,7 +78,8 @@ adb shell cmd devicehealth debug set-daemon-version reset
 ## 6. Fault injection
 
 ```bash
-# HAL disappears: framework moves to STALE, daemon starts reconnect backoff.
+# HAL disappears: the death recipient fires immediately, the framework moves to STALE,
+# and the daemon reconnects with backoff.
 adb shell stop vendor.devicehealth-default
 adb shell cmd devicehealth status
 adb shell start vendor.devicehealth-default
@@ -87,6 +88,19 @@ adb shell start vendor.devicehealth-default
 adb shell kill -9 $(adb shell pidof devicehealthd)
 adb shell cmd devicehealth status
 ```
+
+To see watchdog recovery, stall the evaluation thread and inspect the restart:
+
+```bash
+adb shell cmd devicehealth debug stall 22000
+sleep 20
+adb logcat -d -s DeviceHealthService | grep Watchdog
+adb shell dumpsys devicehealth | grep watchdog
+```
+
+The log shows the stall and restart, and `dumpsys` reports `trips 1` and
+`recoveries 1`. The new evaluation loop keeps running while the old thread finishes its
+sleep.
 
 `dumpsys devicehealth` keeps reporting watchdog status, the last rejected sample and
 per-call binder statistics throughout.

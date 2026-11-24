@@ -96,11 +96,12 @@ runtime thresholds, recent events, rejected samples and binder call statistics.
   in degraded mode (no events, no settings); newer daemons are accepted with unknown
   capability bits ignored.
 - **Daemon resilience**: 60-batch ring buffer, configurable 500..30000ms sampling interval,
-  HAL reconnect backoff 1s..30s, and stale cached samples while the HAL is gone.
+  HAL binder death recipient with immediate reconnect plus 1s..30s backoff, and stale
+  cached samples while the HAL is gone.
 - **Observability**: atrace slices `devicehealth.sample`, `devicehealth.sample.thermal`,
   `devicehealth.sample.memory`, `devicehealth.binder` and `devicehealth.policy`.
-- **Watchdog**: the framework detects a stalled evaluation loop and reports trips in
-  `dumpsys`.
+- **Watchdog**: the framework detects a stalled evaluation loop, restarts it on a fresh
+  handler thread, and reports trips/recoveries in `dumpsys`.
 
 ## Tests
 

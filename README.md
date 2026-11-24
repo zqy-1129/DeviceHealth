@@ -127,7 +127,11 @@ Verified results for this delivery:
 
 - Full image build and cold boot: services `devicehealth`, `devicehealthd` and the HAL
   register; daemon interface v2; self-test and 18 policy checks pass.
-- Fast E2E: 27/27 checks pass. Slow E2E: 36/36 checks pass.
+- Fast E2E: 27/27 checks pass. Slow E2E: 37/37 checks pass.
+- HAL binder death is reported immediately by the death recipient, the framework moves to
+  `STALE`, and the daemon reconnects after the HAL restarts.
+- The watchdog restarts a stalled evaluation loop on a fresh handler thread; `dumpsys`
+  reports `trips 1` / `recoveries 1`, and sampling continues during the stalled thread.
 - APEX v1 → v2 upgrade and rollback verified (see below).
 
 ## APEX v2 upgrade and rollback

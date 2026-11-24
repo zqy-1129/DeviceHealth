@@ -1721,10 +1721,10 @@ index 0000000..80c2ddc
 +}
 diff --git dh-b/packages/modules/DeviceHealth/README.md dh-b/packages/modules/DeviceHealth/README.md
 new file mode 100644
-index 0000000..725d5bd
+index 0000000..0cca2c7
 --- /dev/null
 +++ dh-b/packages/modules/DeviceHealth/README.md
-@@ -0,0 +1,126 @@
+@@ -0,0 +1,127 @@
 +# Device Health Center
 +
 +Device Health Center is an end-to-end AOSP sample that connects a vendor AIDL HAL to an
@@ -1823,11 +1823,12 @@ index 0000000..725d5bd
 +  in degraded mode (no events, no settings); newer daemons are accepted with unknown
 +  capability bits ignored.
 +- **Daemon resilience**: 60-batch ring buffer, configurable 500..30000ms sampling interval,
-+  HAL reconnect backoff 1s..30s, and stale cached samples while the HAL is gone.
++  HAL binder death recipient with immediate reconnect plus 1s..30s backoff, and stale
++  cached samples while the HAL is gone.
 +- **Observability**: atrace slices `devicehealth.sample`, `devicehealth.sample.thermal`,
 +  `devicehealth.sample.memory`, `devicehealth.binder` and `devicehealth.policy`.
-+- **Watchdog**: the framework detects a stalled evaluation loop and reports trips in
-+  `dumpsys`.
++- **Watchdog**: the framework detects a stalled evaluation loop, restarts it on a fresh
++  handler thread, and reports trips/recoveries in `dumpsys`.
 +
 +## Tests
 +
@@ -2427,10 +2428,10 @@ index 0000000..b1f6d87
 +    shutdown critical
 diff --git dh-b/packages/modules/DeviceHealth/docs/demo.md dh-b/packages/modules/DeviceHealth/docs/demo.md
 new file mode 100644
-index 0000000..62eb896
+index 0000000..4a9273b
 --- /dev/null
 +++ dh-b/packages/modules/DeviceHealth/docs/demo.md
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,121 @@
 +# Demo walkthrough
 +
 +A five-minute walkthrough that shows the full HAL → daemon → framework → app chain.
@@ -2511,7 +2512,8 @@ index 0000000..62eb896
 +## 6. Fault injection
 +
 +```bash
-+# HAL disappears: framework moves to STALE, daemon starts reconnect backoff.
++# HAL disappears: the death recipient fires immediately, the framework moves to STALE,
++# and the daemon reconnects with backoff.
 +adb shell stop vendor.devicehealth-default
 +adb shell cmd devicehealth status
 +adb shell start vendor.devicehealth-default
@@ -2520,6 +2522,19 @@ index 0000000..62eb896
 +adb shell kill -9 $(adb shell pidof devicehealthd)
 +adb shell cmd devicehealth status
 +```
++
++To see watchdog recovery, stall the evaluation thread and inspect the restart:
++
++```bash
++adb shell cmd devicehealth debug stall 22000
++sleep 20
++adb logcat -d -s DeviceHealthService | grep Watchdog
++adb shell dumpsys devicehealth | grep watchdog
++```
++
++The log shows the stall and restart, and `dumpsys` reports `trips 1` and
++`recoveries 1`. The new evaluation loop keeps running while the old thread finishes its
++sleep.
 +
 +`dumpsys devicehealth` keeps reporting watchdog status, the last rejected sample and
 +per-call binder statistics throughout.
@@ -3872,10 +3887,10 @@ index 0000000..bf8afef
 +}  // namespace aidl::android::devicehealth
 diff --git dh-b/packages/modules/DeviceHealth/service/ThermalProvider.cpp dh-b/packages/modules/DeviceHealth/service/ThermalProvider.cpp
 new file mode 100644
-index 0000000..f9077aa
+index 0000000..c0e9c25
 --- /dev/null
 +++ dh-b/packages/modules/DeviceHealth/service/ThermalProvider.cpp
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,202 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -3896,7 +3911,6 @@ index 0000000..f9077aa
 +
 +#include <aidl/android/hardware/devicehealth/IDeviceHealth.h>
 +#include <android-base/logging.h>
-+#include <android/binder_auto_utils.h>
 +#include <android/binder_manager.h>
 +
 +#include <time.h>
@@ -3920,9 +3934,59 @@ index 0000000..f9077aa
 +
 +}  // namespace
 +
-+ThermalProvider::ThermalProvider() : backoffMs_(kInitialBackoffMs) {}
++ThermalProvider::ThermalProvider()
++    : deathRecipient_(AIBinder_DeathRecipient_new(&ThermalProvider::onBinderDied)),
++      backoffMs_(kInitialBackoffMs) {
++    if (deathRecipient_ == nullptr) {
++        LOG(ERROR) << "Unable to allocate HAL death recipient";
++    }
++}
++
++ThermalProvider::~ThermalProvider() {
++    std::lock_guard<std::mutex> lock(mutex_);
++    dropConnectionLocked();
++    if (deathRecipient_ != nullptr) {
++        AIBinder_DeathRecipient_delete(deathRecipient_);
++        deathRecipient_ = nullptr;
++    }
++}
++
++void ThermalProvider::onBinderDied(void* cookie) {
++    auto* provider = static_cast<ThermalProvider*>(cookie);
++    provider->halDied_.store(true);
++    LOG(WARNING) << "Device health HAL binder died; reconnecting";
++}
++
++void ThermalProvider::dropConnectionLocked() {
++    // Unlinking a dead binder logs a DEAD_OBJECT error; the death notification already
++    // removed the recipient in that case.
++    if (binder_.get() != nullptr && linked_ && deathRecipient_ != nullptr &&
++        AIBinder_isAlive(binder_.get())) {
++        AIBinder_unlinkToDeath(binder_.get(), deathRecipient_, this);
++    }
++    linked_ = false;
++    hal_.reset();
++    binder_.set(nullptr);
++}
 +
 +std::vector<MetricSample> ThermalProvider::getMetrics(std::string* error) {
++    if (halDied_.exchange(false)) {
++        std::lock_guard<std::mutex> lock(mutex_);
++        if (binder_.get() != nullptr && AIBinder_isAlive(binder_.get())) {
++            // A death notification raced with a reconnect; keep the live connection.
++            LOG(INFO) << "Ignoring stale HAL death notification for a live connection";
++        } else {
++            dropConnectionLocked();
++            if (!unavailable_) {
++                unavailable_ = true;
++                LOG(WARNING) << "Device health HAL is gone; scheduling reconnect";
++            }
++            // Retry immediately so a restarted HAL is picked up without extra delay.
++            nextRetryMs_ = nowMs();
++            backoffMs_ = kInitialBackoffMs;
++        }
++    }
++
 +    {
 +        std::lock_guard<std::mutex> lock(mutex_);
 +        const int64_t now = nowMs();
@@ -3937,6 +4001,7 @@ index 0000000..f9077aa
 +
 +    auto fail = [&](const std::string& reason) {
 +        std::lock_guard<std::mutex> lock(mutex_);
++        dropConnectionLocked();
 +        failures_++;
 +        const int64_t now = nowMs();
 +        nextRetryMs_ = now + backoffMs_;
@@ -3955,14 +4020,41 @@ index 0000000..f9077aa
 +        return std::vector<MetricSample>{};
 +    };
 +
-+    ndk::SpAIBinder binder(AServiceManager_getService(kHalInstance));
-+    if (binder.get() == nullptr) {
-+        return fail("HAL service is not available");
++    std::shared_ptr<aidl::android::hardware::devicehealth::IDeviceHealth> hal;
++    {
++        std::lock_guard<std::mutex> lock(mutex_);
++        hal = hal_;
 +    }
 +
-+    auto hal = aidl::android::hardware::devicehealth::IDeviceHealth::fromBinder(binder);
 +    if (hal == nullptr) {
-+        return fail("Unable to create HAL proxy");
++        ndk::SpAIBinder binder(AServiceManager_getService(kHalInstance));
++        if (binder.get() == nullptr) {
++            return fail("HAL service is not available");
++        }
++        auto connected = aidl::android::hardware::devicehealth::IDeviceHealth::fromBinder(binder);
++        if (connected == nullptr) {
++            return fail("Unable to create HAL proxy");
++        }
++        {
++            std::lock_guard<std::mutex> lock(mutex_);
++            if (hal_ != nullptr) {
++                hal = hal_;
++            } else {
++                binder_ = binder;
++                hal_ = connected;
++                hal = connected;
++                if (deathRecipient_ != nullptr) {
++                    const binder_status_t linkStatus =
++                            AIBinder_linkToDeath(binder_.get(), deathRecipient_, this);
++                    linked_ = linkStatus == STATUS_OK;
++                    if (linked_) {
++                        LOG(INFO) << "Linked to device health HAL death recipient";
++                    } else {
++                        LOG(WARNING) << "Unable to link to HAL death recipient: " << linkStatus;
++                    }
++                }
++            }
++        }
 +    }
 +
 +    std::vector<aidl::android::hardware::devicehealth::MetricSample> halMetrics;
@@ -4003,10 +4095,10 @@ index 0000000..f9077aa
 +}  // namespace aidl::android::devicehealth
 diff --git dh-b/packages/modules/DeviceHealth/service/ThermalProvider.h dh-b/packages/modules/DeviceHealth/service/ThermalProvider.h
 new file mode 100644
-index 0000000..3bd8a9d
+index 0000000..f03824c
 --- /dev/null
 +++ dh-b/packages/modules/DeviceHealth/service/ThermalProvider.h
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,66 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -4026,26 +4118,46 @@ index 0000000..3bd8a9d
 +#pragma once
 +
 +#include <aidl/android/devicehealth/MetricSample.h>
++#include <android/binder_auto_utils.h>
++#include <android/binder_ibinder.h>
 +
++#include <atomic>
 +#include <cstdint>
++#include <memory>
 +#include <mutex>
 +#include <string>
 +#include <vector>
++
++namespace aidl::android::hardware::devicehealth {
++class IDeviceHealth;
++}
 +
 +namespace aidl::android::devicehealth {
 +
 +class ThermalProvider {
 +  public:
 +    ThermalProvider();
++    ~ThermalProvider();
++
++    ThermalProvider(const ThermalProvider&) = delete;
++    ThermalProvider& operator=(const ThermalProvider&) = delete;
 +
 +    /**
-+     * Samples the thermal HAL. When the HAL is unavailable the call is skipped
++     * Samples the thermal HAL. When the HAL dies or is unavailable the call is skipped
 +     * until the reconnect backoff expires.
 +     */
 +    std::vector<MetricSample> getMetrics(std::string* error);
 +
 +  private:
++    static void onBinderDied(void* cookie);
++    void dropConnectionLocked();
++
 +    std::mutex mutex_;
++    ndk::SpAIBinder binder_;
++    std::shared_ptr<aidl::android::hardware::devicehealth::IDeviceHealth> hal_;
++    AIBinder_DeathRecipient* deathRecipient_ = nullptr;
++    bool linked_ = false;
++    std::atomic<bool> halDied_{false};
 +    int64_t nextRetryMs_ = 0;
 +    int64_t backoffMs_;
 +    int64_t failures_ = 0;
@@ -4104,10 +4216,10 @@ index 0000000..328465a
 +}
 diff --git dh-b/tools/e2e_devicehealth.sh dh-b/tools/e2e_devicehealth.sh
 new file mode 100755
-index 0000000..a47d48e
+index 0000000..99a2733
 --- /dev/null
 +++ dh-b/tools/e2e_devicehealth.sh
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,204 @@
 +#!/usr/bin/env bash
 +# End-to-end checks for the Device Health Center stack.
 +#
@@ -4255,6 +4367,7 @@ index 0000000..a47d48e
 +    sleep 8
 +    dump=$(sh dumpsys devicehealth)
 +    matches "watchdog trips recorded" "$dump" "trips [1-9]"
++    matches "watchdog auto-recovery recorded" "$dump" "recoveries [1-9]"
 +    out=$(sh logcat -d -s DeviceHealthService)
 +    contains "watchdog logs recovery" "$out" "Watchdog: evaluation loop recovered"
 +
