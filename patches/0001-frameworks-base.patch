@@ -1302,10 +1302,24 @@ index 92fee519..e0fc10dc 100644
      <permission android:name="android.permission.MANAGE_DEVICE_POLICY_APP_EXEMPTIONS"
                  android:protectionLevel="internal|role" />
 diff --git a/services/core/Android.bp b/services/core/Android.bp
-index 5fe4be72..4757bb56 100644
+index 5fe4be72..2585971e 100644
 --- a/services/core/Android.bp
 +++ b/services/core/Android.bp
-@@ -198,6 +198,7 @@ java_library_static {
+@@ -17,6 +17,13 @@ filegroup {
+     visibility: ["//frameworks/base/services"],
+ }
+ 
++// Exposes the pure policy engine source to host-side unit tests.
++filegroup {
++    name: "devicehealth-policy-engine-srcs",
++    srcs: ["java/com/android/server/devicehealth/PolicyEngine.java"],
++    visibility: ["//packages/modules/DeviceHealth:__subpackages__"],
++}
++
+ filegroup {
+     name: "services.core-sources",
+     srcs: ["java/**/*.java"],
+@@ -198,6 +205,7 @@ java_library_static {
      ],
  
      static_libs: [

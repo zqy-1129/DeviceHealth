@@ -1719,12 +1719,243 @@ index 0000000..80c2ddc
 +        return value * mDensity;
 +    }
 +}
+diff --git dh-b/packages/apps/DeviceHealthCenter/tests/denial/Android.bp dh-b/packages/apps/DeviceHealthCenter/tests/denial/Android.bp
+new file mode 100644
+index 0000000..35f4e9e
+--- /dev/null
++++ dh-b/packages/apps/DeviceHealthCenter/tests/denial/Android.bp
+@@ -0,0 +1,34 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package {
++    default_applicable_licenses: ["Android-Apache-2.0"],
++}
++
++// Privileged so it can find the service, but intentionally not granted
++// MANAGE_DEVICE_HEALTH: it is neither platform-signed nor allowlisted.
++android_app {
++    name: "DeviceHealthDenialTest",
++    srcs: ["src/**/*.java"],
++    manifest: "AndroidManifest.xml",
++    sdk_version: "system_current",
++    privileged: true,
++    min_sdk_version: "34",
++    target_sdk_version: "34",
++    optimize: {
++        enabled: false,
++    },
++}
+diff --git dh-b/packages/apps/DeviceHealthCenter/tests/denial/AndroidManifest.xml dh-b/packages/apps/DeviceHealthCenter/tests/denial/AndroidManifest.xml
+new file mode 100644
+index 0000000..847d75d
+--- /dev/null
++++ dh-b/packages/apps/DeviceHealthCenter/tests/denial/AndroidManifest.xml
+@@ -0,0 +1,40 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++  Copyright (C) 2026 The Android Open Source Project
++
++  Licensed under the Apache License, Version 2.0 (the "License");
++  you may not use this file except in compliance with the License.
++  You may obtain a copy of the License at
++
++       http://www.apache.org/licenses/LICENSE-2.0
++
++  Unless required by applicable law or agreed to in writing, software
++  distributed under the License is distributed on an "AS IS" BASIS,
++  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++  See the License for the specific language governing permissions and
++  limitations under the License.
++-->
++<manifest xmlns:android="http://schemas.android.com/apk/res/android"
++    package="com.android.devicehealthcenter.denialtest">
++
++    <uses-sdk
++        android:minSdkVersion="34"
++        android:targetSdkVersion="34" />
++
++    <!-- No MANAGE_DEVICE_HEALTH declaration: the privileged app must be denied. -->
++
++    <application
++        android:allowBackup="false"
++        android:label="DHC Denial Test"
++        android:theme="@android:style/Theme.DeviceDefault">
++
++        <activity
++            android:name=".DenialActivity"
++            android:exported="true">
++            <intent-filter>
++                <action android:name="android.intent.action.MAIN" />
++                <category android:name="android.intent.category.LAUNCHER" />
++            </intent-filter>
++        </activity>
++    </application>
++</manifest>
+diff --git dh-b/packages/apps/DeviceHealthCenter/tests/denial/src/com/android/devicehealthcenter/denialtest/DenialActivity.java dh-b/packages/apps/DeviceHealthCenter/tests/denial/src/com/android/devicehealthcenter/denialtest/DenialActivity.java
+new file mode 100644
+index 0000000..59cedb2
+--- /dev/null
++++ dh-b/packages/apps/DeviceHealthCenter/tests/denial/src/com/android/devicehealthcenter/denialtest/DenialActivity.java
+@@ -0,0 +1,139 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.devicehealthcenter.denialtest;
++
++import android.app.Activity;
++import android.devicehealth.DeviceHealthEvent;
++import android.devicehealth.DeviceHealthListener;
++import android.devicehealth.DeviceHealthManager;
++import android.devicehealth.DeviceHealthSnapshot;
++import android.os.Bundle;
++import android.util.Log;
++import android.widget.TextView;
++
++/**
++ * Calls every DeviceHealthManager API from a non-privileged, non-platform-signed app.
++ * All calls must fail with SecurityException.
++ */
++public final class DenialActivity extends Activity {
++    private static final String TAG = "DHC_DENIAL_TEST";
++
++    private final StringBuilder mReport = new StringBuilder();
++    private TextView mText;
++
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        mText = new TextView(this);
++        mText.setPadding(48, 48, 48, 48);
++        setContentView(mText);
++        new Thread(this::runChecks, "dhc-denial-test").start();
++    }
++
++    private void runChecks() {
++        DeviceHealthManager resolved;
++        try {
++            resolved = getSystemService(DeviceHealthManager.class);
++            if (resolved == null) {
++                // Class-key lookup can be unavailable to non-platform apps; fall back to
++                // the registered service name.
++                Object raw = getSystemService("devicehealth");
++                record("getSystemService", raw == null ? "ERROR" : "FALLBACK",
++                        raw == null ? "null" : raw.getClass().getName());
++                if (raw instanceof DeviceHealthManager) {
++                    resolved = (DeviceHealthManager) raw;
++                }
++            }
++        } catch (RuntimeException e) {
++            record("getSystemService", "ERROR", e.getClass().getSimpleName());
++            finishReport();
++            return;
++        }
++        if (resolved == null) {
++            record("getSystemService", "ERROR", "null");
++            finishReport();
++            return;
++        }
++        final DeviceHealthManager manager = resolved;
++
++        DeviceHealthListener listener = new DeviceHealthListener() {
++            @Override
++            public void onSnapshotChanged(DeviceHealthSnapshot snapshot) {
++            }
++
++            @Override
++            public void onEvent(DeviceHealthEvent event) {
++            }
++        };
++
++        check("getSnapshot", manager::getSnapshot);
++        check("getRecentEvents", () -> manager.getRecentEvents(1));
++        check("getDaemonInfo", manager::getDaemonInfo);
++        check("registerListener", () -> {
++            manager.registerListener(getMainExecutor(), listener);
++            return null;
++        });
++        check("simulateCritical", () -> {
++            manager.simulateCritical("thermal.cpu");
++            return null;
++        });
++        check("clearSimulated", () -> {
++            manager.clearSimulated();
++            return null;
++        });
++        check("clearEvents", () -> {
++            manager.clearEvents();
++            return null;
++        });
++        finishReport();
++    }
++
++    private interface Call {
++        Object run();
++    }
++
++    private void check(String name, Call call) {
++        try {
++            Object result = call.run();
++            record(name, "ALLOWED", "result=" + (result != null ? "non-null" : "null"));
++        } catch (SecurityException e) {
++            record(name, "DENIED", e.getClass().getSimpleName());
++        } catch (RuntimeException e) {
++            record(name, "ERROR", e.getClass().getSimpleName() + ": " + e.getMessage());
++        }
++    }
++
++    private void record(String name, String outcome, String detail) {
++        String line = name + "=" + outcome + " (" + detail + ")";
++        Log.i(TAG, line);
++        synchronized (mReport) {
++            mReport.append(line).append('\n');
++        }
++    }
++
++    private void finishReport() {
++        String report;
++        boolean passed;
++        synchronized (mReport) {
++            passed = mReport.indexOf("ALLOWED") < 0 && mReport.indexOf("=ERROR") < 0;
++            mReport.append(passed ? "RESULT=PASS" : "RESULT=FAIL");
++            report = mReport.toString();
++        }
++        Log.i(TAG, report);
++        runOnUiThread(() -> mText.setText(report));
++    }
++}
 diff --git dh-b/packages/modules/DeviceHealth/README.md dh-b/packages/modules/DeviceHealth/README.md
 new file mode 100644
-index 0000000..c20a1d2
+index 0000000..2e323aa
 --- /dev/null
 +++ dh-b/packages/modules/DeviceHealth/README.md
-@@ -0,0 +1,131 @@
+@@ -0,0 +1,152 @@
 +# Device Health Center
 +
 +Device Health Center is an end-to-end AOSP sample that connects a vendor AIDL HAL to an
@@ -1837,6 +2068,9 @@ index 0000000..c20a1d2
 +## Tests
 +
 +```bash
++# Host-side JUnit tests for the production PolicyEngine.
++tools/run_policy_junit.sh
++
 +# Fast checks (services, baseline, thresholds, events, notifications, degraded mode).
 +tools/e2e_devicehealth.sh --stabilize
 +
@@ -1844,7 +2078,25 @@ index 0000000..c20a1d2
 +tools/e2e_devicehealth.sh --slow --stabilize
 +```
 +
-+Policy unit checks run on device:
++The permission-denial test uses a privileged but non-platform-signed app that is **not**
++granted `MANAGE_DEVICE_HEALTH`. Install it once:
++
++```bash
++m DeviceHealthDenialTest
++adb root && adb remount
++adb shell mkdir -p /system/priv-app/DeviceHealthDenialTest
++adb push out/target/product/vsoc_x86_64/system/priv-app/DeviceHealthDenialTest/\
++DeviceHealthDenialTest.apk /system/priv-app/DeviceHealthDenialTest/
++adb reboot
++```
++
++Then run:
++
++```bash
++tools/e2e_devicehealth.sh --slow --stabilize --permission
++```
++
++In-service policy checks also run on device:
 +
 +```bash
 +adb shell cmd devicehealth test-policy
@@ -4218,12 +4470,368 @@ index 0000000..328465a
 +    ABinderProcess_joinThreadPool();
 +    return EXIT_FAILURE;
 +}
+diff --git dh-b/packages/modules/DeviceHealth/tests/policy/Android.bp dh-b/packages/modules/DeviceHealth/tests/policy/Android.bp
+new file mode 100644
+index 0000000..2c6b40f
+--- /dev/null
++++ dh-b/packages/modules/DeviceHealth/tests/policy/Android.bp
+@@ -0,0 +1,31 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package {
++    default_applicable_licenses: ["Android-Apache-2.0"],
++}
++
++// Host-side JUnit tests for the production PolicyEngine source.
++// The local android/devicehealth classes are compile-time stand-ins; they are not shipped.
++java_test_host {
++    name: "devicehealth-policy-tests",
++    srcs: [
++        ":devicehealth-policy-engine-srcs",
++        "src/**/*.java",
++    ],
++    static_libs: ["junit"],
++    test_suites: ["general-tests"],
++}
+diff --git dh-b/packages/modules/DeviceHealth/tests/policy/src/android/devicehealth/DeviceHealthMetric.java dh-b/packages/modules/DeviceHealth/tests/policy/src/android/devicehealth/DeviceHealthMetric.java
+new file mode 100644
+index 0000000..a645f4e
+--- /dev/null
++++ dh-b/packages/modules/DeviceHealth/tests/policy/src/android/devicehealth/DeviceHealthMetric.java
+@@ -0,0 +1,61 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++/** Host-test stand-in for the framework metric class. */
++public final class DeviceHealthMetric {
++    private final String mId;
++    private final String mName;
++    private final float mValue;
++    private final String mUnit;
++    private final long mTimestampMs;
++    private final boolean mSimulated;
++
++    public DeviceHealthMetric(String id, String name, float value, String unit,
++            long timestampMs, boolean simulated) {
++        mId = id;
++        mName = name;
++        mValue = value;
++        mUnit = unit;
++        mTimestampMs = timestampMs;
++        mSimulated = simulated;
++    }
++
++    public String getId() {
++        return mId;
++    }
++
++    public String getName() {
++        return mName;
++    }
++
++    public float getValue() {
++        return mValue;
++    }
++
++    public String getUnit() {
++        return mUnit;
++    }
++
++    public long getTimestampMs() {
++        return mTimestampMs;
++    }
++
++    public boolean isSimulated() {
++        return mSimulated;
++    }
++}
+diff --git dh-b/packages/modules/DeviceHealth/tests/policy/src/android/devicehealth/DeviceHealthSnapshot.java dh-b/packages/modules/DeviceHealth/tests/policy/src/android/devicehealth/DeviceHealthSnapshot.java
+new file mode 100644
+index 0000000..e1eba9e
+--- /dev/null
++++ dh-b/packages/modules/DeviceHealth/tests/policy/src/android/devicehealth/DeviceHealthSnapshot.java
+@@ -0,0 +1,29 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package android.devicehealth;
++
++/** Host-test stand-in for the framework snapshot severity constants. */
++public final class DeviceHealthSnapshot {
++    public static final int SEVERITY_NORMAL = 0;
++    public static final int SEVERITY_WARNING = 1;
++    public static final int SEVERITY_CRITICAL = 2;
++    public static final int SEVERITY_STALE = 3;
++    public static final int SEVERITY_UNKNOWN = 4;
++
++    private DeviceHealthSnapshot() {
++    }
++}
+diff --git dh-b/packages/modules/DeviceHealth/tests/policy/src/com/android/server/devicehealth/PolicyEngineTest.java dh-b/packages/modules/DeviceHealth/tests/policy/src/com/android/server/devicehealth/PolicyEngineTest.java
+new file mode 100644
+index 0000000..ba90431
+--- /dev/null
++++ dh-b/packages/modules/DeviceHealth/tests/policy/src/com/android/server/devicehealth/PolicyEngineTest.java
+@@ -0,0 +1,211 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.server.devicehealth;
++
++import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.assertNotNull;
++import static org.junit.Assert.assertNull;
++import static org.junit.Assert.assertTrue;
++
++import android.devicehealth.DeviceHealthMetric;
++import android.devicehealth.DeviceHealthSnapshot;
++
++import org.junit.Test;
++
++import java.util.Collections;
++import java.util.List;
++
++/** Host-side unit tests for the production {@link PolicyEngine}. */
++public final class PolicyEngineTest {
++    private static final long START_MS = 100_000;
++    private static final long SAMPLE_INTERVAL_MS = 1_000;
++
++    @Test
++    public void firstNormalSampleIsQuiet() {
++        PolicyEngine engine = new PolicyEngine();
++        PolicyEngine.Result result = engine.evaluate(thermal(42.0f, START_MS), START_MS);
++        assertTrue(result.transitions.isEmpty());
++        assertEquals(DeviceHealthSnapshot.SEVERITY_NORMAL, result.overallSeverity);
++    }
++
++    @Test
++    public void debounceHoldsWarningUntilThirdSample() {
++        PolicyEngine engine = new PolicyEngine();
++        long now = START_MS;
++        engine.evaluate(thermal(42.0f, now), now);
++
++        int transitions = 0;
++        for (int i = 1; i <= 2; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            transitions += engine.evaluate(thermal(66.0f, now), now).transitions.size();
++        }
++        assertEquals(0, transitions);
++
++        now += SAMPLE_INTERVAL_MS;
++        PolicyEngine.Result warning = engine.evaluate(thermal(66.0f, now), now);
++        assertEquals(1, warning.transitions.size());
++        assertEquals(DeviceHealthSnapshot.SEVERITY_WARNING,
++                warning.transitions.get(0).toSeverity);
++        assertEquals(DeviceHealthSnapshot.SEVERITY_WARNING, warning.overallSeverity);
++    }
++
++    @Test
++    public void hysteresisClearsWarningBelowWarningClear() {
++        PolicyEngine engine = new PolicyEngine();
++        long now = START_MS;
++        engine.evaluate(thermal(42.0f, now), now);
++        for (int i = 0; i < 3; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            engine.evaluate(thermal(66.0f, now), now);
++        }
++
++        int transitions = 0;
++        for (int i = 0; i < 2; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            transitions += engine.evaluate(thermal(58.0f, now), now).transitions.size();
++        }
++        assertEquals(0, transitions);
++
++        now += SAMPLE_INTERVAL_MS;
++        PolicyEngine.Result recovered = engine.evaluate(thermal(58.0f, now), now);
++        assertEquals(1, recovered.transitions.size());
++        assertEquals(DeviceHealthSnapshot.SEVERITY_NORMAL,
++                recovered.transitions.get(0).toSeverity);
++    }
++
++    @Test
++    public void escalatesToCriticalOneStepAtATime() {
++        PolicyEngine engine = new PolicyEngine();
++        long now = START_MS;
++        engine.evaluate(thermal(42.0f, now), now);
++
++        PolicyEngine.Result warning = null;
++        for (int i = 0; i < 3; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            warning = engine.evaluate(thermal(76.0f, now), now);
++        }
++        assertNotNull(warning);
++        assertEquals(1, warning.transitions.size());
++        assertEquals(DeviceHealthSnapshot.SEVERITY_WARNING,
++                warning.transitions.get(0).toSeverity);
++
++        PolicyEngine.Result critical = null;
++        for (int i = 0; i < 3; i++) {
++            now += SAMPLE_INTERVAL_MS;
++            critical = engine.evaluate(thermal(76.0f, now), now);
++        }
++        assertNotNull(critical);
++        assertEquals(1, critical.transitions.size());
++        assertEquals(DeviceHealthSnapshot.SEVERITY_WARNING,
++                critical.transitions.get(0).fromSeverity);
++        assertEquals(DeviceHealthSnapshot.SEVERITY_CRITICAL,
++                critical.transitions.get(0).toSeverity);
++    }
++
++    @Test
++    public void sampleAgesIntoStaleAndUnknown() {
++        PolicyEngine engine = new PolicyEngine();
++        List<DeviceHealthMetric> metrics = thermal(42.0f, START_MS);
++        engine.evaluate(metrics, START_MS);
++
++        PolicyEngine.Result stale = engine.evaluate(metrics, START_MS + 11_000);
++        assertEquals(1, stale.transitions.size());
++        assertEquals(DeviceHealthSnapshot.SEVERITY_STALE,
++                stale.transitions.get(0).toSeverity);
++
++        PolicyEngine.Result unknown = engine.evaluate(metrics, START_MS + 31_000);
++        assertEquals(1, unknown.transitions.size());
++        assertEquals(DeviceHealthSnapshot.SEVERITY_UNKNOWN,
++                unknown.transitions.get(0).toSeverity);
++    }
++
++    @Test
++    public void unavailableDataAgesKnownMetrics() {
++        PolicyEngine engine = new PolicyEngine();
++        engine.evaluate(thermal(42.0f, START_MS), START_MS);
++
++        PolicyEngine.Result stale = engine.onDataUnavailable(START_MS + 11_000);
++        assertEquals(DeviceHealthSnapshot.SEVERITY_STALE, stale.overallSeverity);
++
++        PolicyEngine.Result unknown = engine.onDataUnavailable(START_MS + 31_000);
++        assertEquals(DeviceHealthSnapshot.SEVERITY_UNKNOWN, unknown.overallSeverity);
++    }
++
++    @Test
++    public void thresholdValidationRejectsInvalidConfigurations() {
++        assertNull(PolicyEngine.validateThresholds(65.0f, 60.0f, 75.0f, 70.0f, 3));
++        assertNotNull(PolicyEngine.validateThresholds(60.0f, 65.0f, 75.0f, 70.0f, 3));
++        assertNotNull(PolicyEngine.validateThresholds(65.0f, 60.0f, 70.0f, 75.0f, 3));
++        assertNotNull(PolicyEngine.validateThresholds(70.0f, 65.0f, 60.0f, 55.0f, 3));
++        assertNotNull(PolicyEngine.validateThresholds(65.0f, 60.0f, 75.0f, 70.0f, 0));
++        assertNotNull(PolicyEngine.validateThresholds(65.0f, 60.0f, 75.0f, 70.0f, 21));
++        assertNotNull(PolicyEngine.validateThresholds(Float.NaN, 60.0f, 75.0f, 70.0f, 3));
++    }
++
++    @Test
++    public void fastTransitionsAreRateLimited() {
++        PolicyEngine engine = new PolicyEngine();
++        engine.setThresholds("thermal.",
++                new PolicyEngine.Thresholds(65.0f, 60.0f, 75.0f, 70.0f, 1));
++        long now = START_MS;
++        engine.evaluate(thermal(42.0f, now), now);
++
++        now += SAMPLE_INTERVAL_MS;
++        PolicyEngine.Result warning = engine.evaluate(thermal(66.0f, now), now);
++        assertEquals(1, warning.transitions.size());
++
++        now += SAMPLE_INTERVAL_MS;
++        PolicyEngine.Result suppressed = engine.evaluate(thermal(76.0f, now), now);
++        assertTrue(suppressed.transitions.isEmpty());
++    }
++
++    @Test
++    public void thresholdsCanBeChangedAndReset() {
++        PolicyEngine engine = new PolicyEngine();
++        assertEquals("thermal.", engine.thresholdKeyFor("thermal.cpu"));
++        assertEquals("memory.pressure", engine.thresholdKeyFor("memory.pressure"));
++        assertNull(engine.thresholdKeyFor("unknown.metric"));
++
++        PolicyEngine.Thresholds custom =
++                new PolicyEngine.Thresholds(70.0f, 65.0f, 85.0f, 80.0f, 2);
++        engine.setThresholds("memory.pressure", custom);
++        PolicyEngine.Thresholds current = engine.thresholdsFor("memory.pressure");
++        assertNotNull(current);
++        assertEquals(70.0f, current.warningEnter, 0.001f);
++        assertEquals(2, current.debounceSamples);
++
++        engine.resetThresholds();
++        PolicyEngine.Thresholds defaults = engine.thresholdsFor("memory.pressure");
++        assertNotNull(defaults);
++        assertEquals(80.0f, defaults.warningEnter, 0.001f);
++        assertEquals(3, defaults.debounceSamples);
++    }
++
++    @Test
++    public void severityNamesMatchStateMachine() {
++        assertEquals("NORMAL", PolicyEngine.severityName(DeviceHealthSnapshot.SEVERITY_NORMAL));
++        assertEquals("WARNING", PolicyEngine.severityName(DeviceHealthSnapshot.SEVERITY_WARNING));
++        assertEquals("CRITICAL", PolicyEngine.severityName(DeviceHealthSnapshot.SEVERITY_CRITICAL));
++        assertEquals("STALE", PolicyEngine.severityName(DeviceHealthSnapshot.SEVERITY_STALE));
++        assertEquals("UNKNOWN", PolicyEngine.severityName(DeviceHealthSnapshot.SEVERITY_UNKNOWN));
++    }
++
++    private static List<DeviceHealthMetric> thermal(float value, long timestampMs) {
++        return Collections.singletonList(new DeviceHealthMetric("thermal.cpu", "CPU", value, "C",
++                timestampMs, /*simulated=*/false));
++    }
++}
 diff --git dh-b/tools/e2e_devicehealth.sh dh-b/tools/e2e_devicehealth.sh
 new file mode 100755
-index 0000000..99a2733
+index 0000000..bc3faa5
 --- /dev/null
 +++ dh-b/tools/e2e_devicehealth.sh
-@@ -0,0 +1,204 @@
+@@ -0,0 +1,233 @@
 +#!/usr/bin/env bash
 +# End-to-end checks for the Device Health Center stack.
 +#
@@ -4231,6 +4839,10 @@ index 0000000..99a2733
 +#   tools/e2e_devicehealth.sh                # fast checks
 +#   tools/e2e_devicehealth.sh --slow         # adds watchdog, HAL, daemon-death and App checks
 +#   tools/e2e_devicehealth.sh --stabilize    # disables Wi-Fi/data first (Cuttlefish stability)
++#   tools/e2e_devicehealth.sh --permission   # adds the priv-app permission-denial check
++#
++# The permission test requires DeviceHealthDenialTest to be installed under
++# /system/priv-app. See the README for the install steps.
 +#
 +# Artifacts (dumpsys/logcat) are written to $OUT_DIR (default /tmp/devicehealth-e2e-*).
 +set -u
@@ -4239,15 +4851,17 @@ index 0000000..99a2733
 +OUT_DIR="${OUT_DIR:-/tmp/devicehealth-e2e-$(date +%Y%m%d-%H%M%S)}"
 +SLOW=0
 +STABILIZE=0
++PERMISSION=0
 +
 +usage() {
-+    echo "Usage: $0 [--slow] [--stabilize]"
++    echo "Usage: $0 [--slow] [--stabilize] [--permission]"
 +}
 +
 +for arg in "$@"; do
 +    case "$arg" in
 +        --slow) SLOW=1 ;;
 +        --stabilize) STABILIZE=1 ;;
++        --permission) PERMISSION=1 ;;
 +        -h|--help) usage; exit 0 ;;
 +        *) echo "Unknown option: $arg"; usage; exit 2 ;;
 +    esac
@@ -4413,6 +5027,29 @@ index 0000000..99a2733
 +    contains "app unregisters on stop" "$dump" "listeners: 0"
 +fi
 +
++if [ "$PERMISSION" = 1 ]; then
++    section "Permission denial"
++    out=$(sh pm path com.android.devicehealthcenter.denialtest)
++    contains "denial test app installed" "$out" "priv-app/DeviceHealthDenialTest"
++    granted=$(sh dumpsys package com.android.devicehealthcenter.denialtest | grep -c \
++            "MANAGE_DEVICE_HEALTH")
++    if [ "$granted" = "0" ]; then
++        pass "MANAGE_DEVICE_HEALTH is not granted"
++    else
++        fail "MANAGE_DEVICE_HEALTH is not granted (found $granted references)"
++    fi
++    sh logcat -c
++    sh am force-stop com.android.devicehealthcenter.denialtest >/dev/null 2>&1
++    sh am start -n com.android.devicehealthcenter.denialtest/.DenialActivity >/dev/null 2>&1
++    sleep 3
++    out=$(sh logcat -d -s DHC_DENIAL_TEST)
++    contains "unprivileged API calls denied" "$out" "RESULT=PASS"
++    matches "getSnapshot denied" "$out" "getSnapshot=DENIED"
++    matches "registerListener denied" "$out" "registerListener=DENIED"
++    matches "clearEvents denied" "$out" "clearEvents=DENIED"
++    sh am force-stop com.android.devicehealthcenter.denialtest >/dev/null 2>&1
++fi
++
 +sh cmd devicehealth reset >/dev/null
 +sh cmd devicehealth daemon-interval reset >/dev/null 2>&1
 +sh cmd devicehealth debug set-daemon-version reset >/dev/null 2>&1
@@ -4428,3 +5065,28 @@ index 0000000..99a2733
 +fi
 +say "E2E FAIL ($FAILURES failed / $CHECKS checks)"
 +exit 1
+diff --git dh-b/tools/run_policy_junit.sh dh-b/tools/run_policy_junit.sh
+new file mode 100755
+index 0000000..802ec98
+--- /dev/null
++++ dh-b/tools/run_policy_junit.sh
+@@ -0,0 +1,19 @@
++#!/usr/bin/env bash
++# Build and run the host-side JUnit tests for the production PolicyEngine.
++set -eo pipefail
++
++AOSP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++cd "$AOSP_DIR"
++
++source build/envsetup.sh >/dev/null
++lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null
++
++m devicehealth-policy-tests
++
++JAR="out/host/linux-x86/testcases/devicehealth-policy-tests/devicehealth-policy-tests.jar"
++JDK="prebuilts/jdk/jdk17/linux-x86/bin/java"
++JUNIT="prebuilts/devtools/tools/lib/junit-4.12.jar"
++HAMCREST="prebuilts/devtools/tools/lib/hamcrest-core-1.3.jar"
++
++exec "$JDK" -cp "$JAR:$JUNIT:$HAMCREST" \
++    org.junit.runner.JUnitCore com.android.server.devicehealth.PolicyEngineTest

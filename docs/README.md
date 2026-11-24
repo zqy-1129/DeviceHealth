@@ -110,6 +110,9 @@ runtime thresholds, recent events, rejected samples and binder call statistics.
 ## Tests
 
 ```bash
+# Host-side JUnit tests for the production PolicyEngine.
+tools/run_policy_junit.sh
+
 # Fast checks (services, baseline, thresholds, events, notifications, degraded mode).
 tools/e2e_devicehealth.sh --stabilize
 
@@ -117,7 +120,25 @@ tools/e2e_devicehealth.sh --stabilize
 tools/e2e_devicehealth.sh --slow --stabilize
 ```
 
-Policy unit checks run on device:
+The permission-denial test uses a privileged but non-platform-signed app that is **not**
+granted `MANAGE_DEVICE_HEALTH`. Install it once:
+
+```bash
+m DeviceHealthDenialTest
+adb root && adb remount
+adb shell mkdir -p /system/priv-app/DeviceHealthDenialTest
+adb push out/target/product/vsoc_x86_64/system/priv-app/DeviceHealthDenialTest/\
+DeviceHealthDenialTest.apk /system/priv-app/DeviceHealthDenialTest/
+adb reboot
+```
+
+Then run:
+
+```bash
+tools/e2e_devicehealth.sh --slow --stabilize --permission
+```
+
+In-service policy checks also run on device:
 
 ```bash
 adb shell cmd devicehealth test-policy

@@ -26,7 +26,8 @@ devicehealth-delivery/
 │   ├── 03-diagnostics-normal.png
 │   └── 04-diagnostics-degraded.png
 └── scripts/
-    └── e2e_devicehealth.sh
+    ├── e2e_devicehealth.sh
+    └── run_policy_junit.sh
 ```
 
 ## Tested environment
@@ -117,25 +118,49 @@ adb reboot
 ## Verify
 
 ```bash
+# Host-side JUnit tests for the production PolicyEngine.
+tools/run_policy_junit.sh
+
 # Fast checks: services, baseline, thresholds, events, notification, degraded mode.
 tools/e2e_devicehealth.sh --stabilize
 
 # Adds watchdog, HAL stop/start, daemon kill/restart and app listener lifecycle.
 tools/e2e_devicehealth.sh --slow --stabilize
+```
 
+The permission-denial test uses a privileged but non-platform-signed app that is not
+granted `MANAGE_DEVICE_HEALTH`. Install it once, then run E2E with `--permission`:
+
+```bash
+m DeviceHealthDenialTest
+adb root && adb remount
+adb shell mkdir -p /system/priv-app/DeviceHealthDenialTest
+adb push out/target/product/vsoc_x86_64/system/priv-app/DeviceHealthDenialTest/\
+DeviceHealthDenialTest.apk /system/priv-app/DeviceHealthDenialTest/
+adb reboot
+
+tools/e2e_devicehealth.sh --slow --stabilize --permission
+```
+
+In-service policy checks also run on device:
+
+```bash
 adb shell cmd devicehealth self-test
 adb shell cmd devicehealth test-policy
 ```
 
 Verified results for this delivery:
 
-- Full image build and cold boot: services `devicehealth`, `devicehealthd` and the HAL
-  register; daemon interface v2; self-test and 18 policy checks pass.
-- Fast E2E: 27/27 checks pass. Slow E2E: 37/37 checks pass.
+- Host JUnit: 10/10 policy tests pass.
+- In-service policy checks: 18/18 pass.
+- Fast E2E: 27/27 without the permission app, 33/33 with it.
+- Slow E2E: 37/37 without the permission app, 43/43 with it.
 - HAL binder death is reported immediately by the death recipient, the framework moves to
   `STALE`, and the daemon reconnects after the HAL restarts.
 - The watchdog restarts a stalled evaluation loop on a fresh handler thread; `dumpsys`
   reports `trips 1` / `recoveries 1`, and sampling continues during the stalled thread.
+- The privileged-but-ungranted test app receives `SecurityException` for every
+  `DeviceHealthManager` API.
 - APEX v1 → v2 upgrade and rollback verified (see below).
 
 ## APEX v2 upgrade and rollback

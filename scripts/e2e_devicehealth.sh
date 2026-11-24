@@ -5,6 +5,10 @@
 #   tools/e2e_devicehealth.sh                # fast checks
 #   tools/e2e_devicehealth.sh --slow         # adds watchdog, HAL, daemon-death and App checks
 #   tools/e2e_devicehealth.sh --stabilize    # disables Wi-Fi/data first (Cuttlefish stability)
+#   tools/e2e_devicehealth.sh --permission   # adds the priv-app permission-denial check
+#
+# The permission test requires DeviceHealthDenialTest to be installed under
+# /system/priv-app. See the README for the install steps.
 #
 # Artifacts (dumpsys/logcat) are written to $OUT_DIR (default /tmp/devicehealth-e2e-*).
 set -u
@@ -13,15 +17,17 @@ ADB="${ADB:-adb}"
 OUT_DIR="${OUT_DIR:-/tmp/devicehealth-e2e-$(date +%Y%m%d-%H%M%S)}"
 SLOW=0
 STABILIZE=0
+PERMISSION=0
 
 usage() {
-    echo "Usage: $0 [--slow] [--stabilize]"
+    echo "Usage: $0 [--slow] [--stabilize] [--permission]"
 }
 
 for arg in "$@"; do
     case "$arg" in
         --slow) SLOW=1 ;;
         --stabilize) STABILIZE=1 ;;
+        --permission) PERMISSION=1 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unknown option: $arg"; usage; exit 2 ;;
     esac
@@ -185,6 +191,29 @@ if [ "$SLOW" = 1 ]; then
     sleep 4
     dump=$(sh dumpsys devicehealth)
     contains "app unregisters on stop" "$dump" "listeners: 0"
+fi
+
+if [ "$PERMISSION" = 1 ]; then
+    section "Permission denial"
+    out=$(sh pm path com.android.devicehealthcenter.denialtest)
+    contains "denial test app installed" "$out" "priv-app/DeviceHealthDenialTest"
+    granted=$(sh dumpsys package com.android.devicehealthcenter.denialtest | grep -c \
+            "MANAGE_DEVICE_HEALTH")
+    if [ "$granted" = "0" ]; then
+        pass "MANAGE_DEVICE_HEALTH is not granted"
+    else
+        fail "MANAGE_DEVICE_HEALTH is not granted (found $granted references)"
+    fi
+    sh logcat -c
+    sh am force-stop com.android.devicehealthcenter.denialtest >/dev/null 2>&1
+    sh am start -n com.android.devicehealthcenter.denialtest/.DenialActivity >/dev/null 2>&1
+    sleep 3
+    out=$(sh logcat -d -s DHC_DENIAL_TEST)
+    contains "unprivileged API calls denied" "$out" "RESULT=PASS"
+    matches "getSnapshot denied" "$out" "getSnapshot=DENIED"
+    matches "registerListener denied" "$out" "registerListener=DENIED"
+    matches "clearEvents denied" "$out" "clearEvents=DENIED"
+    sh am force-stop com.android.devicehealthcenter.denialtest >/dev/null 2>&1
 fi
 
 sh cmd devicehealth reset >/dev/null
