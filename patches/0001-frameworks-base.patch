@@ -1329,10 +1329,10 @@ index 5fe4be72..2585971e 100644
          "android.hardware.authsecret-V1-java",
 diff --git a/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
 new file mode 100644
-index 00000000..1700c0c7
+index 00000000..c1be1d3d
 --- /dev/null
 +++ b/services/core/java/com/android/server/devicehealth/DeviceHealthManagerService.java
-@@ -0,0 +1,1750 @@
+@@ -0,0 +1,1790 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -2557,6 +2557,10 @@ index 00000000..1700c0c7
 +            pw.println("    Set the daemon sampling interval (500..30000ms, daemon v2+).");
 +            pw.println("  debug stall <ms>");
 +            pw.println("    Block the evaluation thread to exercise the watchdog.");
++            pw.println("  debug hold-lock <ms>");
++            pw.println("    Hold the service lock to exercise watchdog recovery.");
++            pw.println("  debug reset-watchdog");
++            pw.println("    Reset watchdog trips, recoveries and cooldown.");
 +            pw.println("  debug set-daemon-version <version|reset>");
 +            pw.println("    Simulate an incompatible daemon interface version.");
 +            pw.println("  reset");
@@ -2890,7 +2894,8 @@ index 00000000..1700c0c7
 +            String what = getNextArg();
 +            if (what == null) {
 +                getErrPrintWriter().println(
-+                        "Usage: cmd devicehealth debug stall <ms>|set-daemon-version <version|reset>");
++                        "Usage: cmd devicehealth debug stall <ms>|hold-lock <ms>|"
++                                + "reset-watchdog|set-daemon-version <version|reset>");
 +                return -1;
 +            }
 +            if ("stall".equals(what)) {
@@ -2912,6 +2917,41 @@ index 00000000..1700c0c7
 +                mHandler.post(() -> SystemClock.sleep(stallMs));
 +                getOutPrintWriter().println("Blocking the evaluation thread for " + durationMs
 +                        + "ms; watchdog trips after " + WATCHDOG_STALL_MS + "ms");
++                return 0;
++            }
++            if ("hold-lock".equals(what)) {
++                String arg = getNextArg();
++                int durationMs = 20_000;
++                if (arg != null) {
++                    try {
++                        durationMs = Integer.parseInt(arg);
++                    } catch (NumberFormatException e) {
++                        getErrPrintWriter().println("Invalid duration: " + arg);
++                        return -1;
++                    }
++                }
++                if (durationMs <= 0 || durationMs > 60_000) {
++                    getErrPrintWriter().println("Duration must be between 1 and 60000 ms");
++                    return -1;
++                }
++                final long holdMs = durationMs;
++                Thread holder = new Thread(() -> {
++                    synchronized (mLock) {
++                        Slog.w(TAG, "Debug: holding mLock for " + holdMs + "ms");
++                        SystemClock.sleep(holdMs);
++                    }
++                    Slog.w(TAG, "Debug: released mLock");
++                }, "DeviceHealth-debug-lock");
++                holder.start();
++                getOutPrintWriter().println("Holding mLock for " + durationMs + "ms");
++                return 0;
++            }
++            if ("reset-watchdog".equals(what)) {
++                mWatchdogTrips.set(0);
++                mWatchdogRecoveries.set(0);
++                mLastWatchdogRecoveryMs = 0;
++                mEvaluationStallReported = false;
++                getOutPrintWriter().println("Watchdog counters and cooldown reset");
 +                return 0;
 +            }
 +            if ("set-daemon-version".equals(what)) {

@@ -27,6 +27,7 @@ devicehealth-delivery/
 │   └── 04-diagnostics-degraded.png
 └── scripts/
     ├── e2e_devicehealth.sh
+    ├── fault_matrix.sh
     └── run_policy_junit.sh
 ```
 
@@ -59,7 +60,7 @@ git apply -p1 /path/to/devicehealth-delivery/patches/0005-devicehealth-module.pa
 ```
 
 Patch 0005 creates the new projects `packages/modules/DeviceHealth`,
-`packages/apps/DeviceHealthCenter` and `tools/e2e_devicehealth.sh`.
+`packages/apps/DeviceHealthCenter` and the `tools/` test scripts.
 
 ### APEX signing keys
 
@@ -126,6 +127,15 @@ tools/e2e_devicehealth.sh --stabilize
 
 # Adds watchdog, HAL stop/start, daemon kill/restart and app listener lifecycle.
 tools/e2e_devicehealth.sh --slow --stabilize
+
+# Fault matrix: real binder wedges, lock contention, version skew, component death.
+tools/fault_matrix.sh
+
+# Adds the permission-denial checks.
+tools/fault_matrix.sh --permission
+
+# Adds the real APEX removal/restore scenario (reboots the device twice).
+tools/fault_matrix.sh --apex-missing
 ```
 
 The permission-denial test uses a privileged but non-platform-signed app that is not
@@ -155,6 +165,17 @@ Verified results for this delivery:
 - In-service policy checks: 18/18 pass.
 - Fast E2E: 27/27 without the permission app, 33/33 with it.
 - Slow E2E: 37/37 without the permission app, 43/43 with it.
+- Fault matrix: 35/35 non-destructive checks pass; 42/42 with `--permission`.
+- Fault matrix with `--apex-missing --permission`: 50/50 checks pass after removing and
+  restoring `/system_ext/apex/com.android.devicehealth.apex` across two reboots. With the
+  APEX removed, the app diagnostics page reports `daemon：不可用` / `APEX 版本：不可用`
+  and the in-app self-test reports `SELF-TEST FAIL`.
+- A real `SIGSTOP` of `devicehealthd` drives the framework to `STALE` with
+  `daemon: unavailable`, bounded `getSnapshot` timeouts and a `SIGCONT` recovery. A real
+  `SIGSTOP` of the HAL keeps the daemon connected, ages cached samples into `STALE`, and
+  recovers on `SIGCONT`.
+- Holding the service lock for 22s trips the watchdog: the loop is restarted on a fresh
+  handler thread and `dumpsys` reports `trips 1` / `recoveries 1`.
 - HAL binder death is reported immediately by the death recipient, the framework moves to
   `STALE`, and the daemon reconnects after the HAL restarts.
 - The watchdog restarts a stalled evaluation loop on a fresh handler thread; `dumpsys`

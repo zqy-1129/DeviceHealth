@@ -79,6 +79,9 @@ adb shell cmd devicehealth stats
 adb shell cmd devicehealth self-test
 adb shell cmd devicehealth test-policy
 adb shell cmd devicehealth debug stall 20000
+adb shell cmd devicehealth debug hold-lock 22000
+adb shell cmd devicehealth debug reset-watchdog
+adb shell cmd devicehealth debug set-daemon-version 3
 adb shell cmd devicehealth debug set-daemon-version 0
 adb shell cmd devicehealth debug set-daemon-version reset
 adb shell cmd devicehealth reset
@@ -118,6 +121,13 @@ tools/e2e_devicehealth.sh --stabilize
 
 # Adds watchdog, HAL stop/start, daemon kill/restart and app listener lifecycle.
 tools/e2e_devicehealth.sh --slow --stabilize
+
+# Deterministic fault matrix: real SIGSTOP binder wedges, lock contention,
+# NEWER/TOO_OLD version skew, HAL death and daemon death.
+tools/fault_matrix.sh
+
+# Adds permission denial; --apex-missing removes the APEX across two reboots.
+tools/fault_matrix.sh --permission --apex-missing
 ```
 
 The permission-denial test uses a privileged but non-platform-signed app that is **not**
