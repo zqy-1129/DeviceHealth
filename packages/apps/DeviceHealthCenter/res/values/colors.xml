@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (C) 2026 The Android Open Source Project
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<resources>
+    <!-- Page and surfaces -->
+    <color name="dh_bg_top">#F9FBFE</color>
+    <color name="dh_bg_bottom">#EDF2F8</color>
+    <color name="dh_window_glow">#140D9488</color>
+    <color name="dh_surface">#FFFFFF</color>
+    <color name="dh_surface_alt">#F6F9FD</color>
+    <color name="dh_hero_start">#FFFFFF</color>
+    <color name="dh_hero_end">#F7FCFB</color>
+    <color name="dh_line">#E7EDF5</color>
+
+    <!-- Text -->
+    <color name="dh_ink">#0B1526</color>
+    <color name="dh_sub">#4E5F76</color>
+    <color name="dh_muted">#8B98AB</color>
+    <color name="dh_icon">#4E5F76</color>
+
+    <!-- Accents and status -->
+    <color name="dh_teal">#0D9488</color>
+    <color name="dh_teal_text">#0F766E</color>
+    <color name="dh_green">#059669</color>
+    <color name="dh_amber">#D97706</color>
+    <color name="dh_red">#DC2626</color>
+    <color name="dh_blue">#2563EB</color>
+    <color name="dh_series_temp">#0D9488</color>
+    <color name="dh_series_memory">#2563EB</color>
+    <color name="dh_chart_grid">#E9EFF7</color>
+
+    <!-- Tabs and chips -->
+    <color name="dh_tab_track">#E9EFF7</color>
+    <color name="dh_tab_track_stroke">#00FFFFFF</color>
+    <color name="dh_tab_active">#FFFFFF</color>
+    <color name="dh_tab_active_stroke">#00FFFFFF</color>
+    <color name="dh_chip_selected_bg">#0F766E</color>
+    <color name="dh_chip_selected_stroke">#00000000</color>
+    <color name="dh_on_chip_selected">#FFFFFF</color>
+
+    <!-- Buttons -->
+    <color name="dh_btn_primary_bg">#0F766E</color>
+    <color name="dh_btn_primary_text">#FFFFFF</color>
+    <color name="dh_btn_primary_stroke">#00000000</color>
+    <color name="dh_btn_warn_bg">#FDF3E3</color>
+    <color name="dh_btn_warn_text">#B45309</color>
+    <color name="dh_btn_warn_stroke">#F2D6A2</color>
+    <color name="dh_btn_ghost_bg">#F6F9FD</color>
+    <color name="dh_btn_ghost_text">#4E5F76</color>
+
+    <!-- Memory bar -->
+    <color name="dh_bar_track">#EDF2F8</color>
+    <color name="dh_bar_start">#60A5FA</color>
+    <color name="dh_bar_end">#2563EB</color>
+
+    <!-- Gauge -->
+    <color name="dh_gauge_track">#EAF0F7</color>
+    <color name="dh_gauge_start">#2DD4BF</color>
+    <color name="dh_gauge_end">#059669</color>
+    <color name="dh_gauge_inner">#F8FBFB</color>
+
+    <!-- Logo -->
+    <color name="dh_logo_start">#0F766E</color>
+    <color name="dh_logo_end">#0D9488</color>
+    <color name="dh_logo_stroke">#00000000</color>
+    <color name="dh_logo_icon">#FFFFFF</color>
+
+    <!-- Highlights -->
+    <color name="dh_highlight">#FFF7E6</color>
+    <color name="dh_highlight_stroke">#F2C879</color>
+    <color name="dh_hint_bg">#66FFFFFF</color>
+    <color name="dh_ripple">#1A0F766E</color>
+
+    <!-- System bars -->
+    <color name="dh_status_bar">#F9FBFE</color>
+    <color name="dh_nav_bar">#EDF2F8</color>
+</resources>

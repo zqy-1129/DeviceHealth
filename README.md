@@ -14,6 +14,9 @@ devicehealth-delivery/
 │   ├── design.md                            # design document
 │   ├── demo.md                              # demo walkthrough
 │   └── README.md                            # module README
+├── packages/
+│   ├── apps/DeviceHealthCenter/             # actual app source (Java + resources)
+│   └── modules/DeviceHealth/                # actual AIDL, daemon, APEX, tests
 ├── patches/
 │   ├── 0001-frameworks-base.patch
 │   ├── 0002-hardware-interfaces.patch
@@ -35,6 +38,18 @@ devicehealth-delivery/
     ├── fault_matrix.sh
     └── run_policy_junit.sh
 ```
+
+## Source layout
+
+`packages/` mirrors the new AOSP projects and contains the actual implementation:
+
+- `packages/apps/DeviceHealthCenter/` — Java app, layouts, drawables, theme resources.
+- `packages/modules/DeviceHealth/` — AIDL, native `devicehealthd`, APEX config, policy tests.
+
+Changes to existing AOSP projects (`frameworks/base`, `hardware/interfaces`,
+`system/sepolicy`, `device/google/cuttlefish`) remain in `patches/` because they modify
+existing trees rather than add standalone projects. The APEX private signing keys are
+intentionally excluded; see "APEX signing keys" below.
 
 ## Tested environment
 

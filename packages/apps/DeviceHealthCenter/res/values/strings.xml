@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright (C) 2026 The Android Open Source Project
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<resources>
+    <string name="app_name">Device Health Center</string>
+    <string name="app_subtitle">系统健康监测</string>
+
+    <string name="switch_to_dark">切换到深色模式</string>
+    <string name="switch_to_light">切换到浅色模式</string>
+    <string name="theme_dark_short">深色</string>
+    <string name="theme_light_short">浅色</string>
+    <string name="connection_live">LIVE</string>
+    <string name="connection_reconnecting">重连中</string>
+    <string name="connection_offline">离线</string>
+    <string name="connection_connecting">连接中</string>
+
+    <string name="tab_overview">概览</string>
+    <string name="tab_events">事件</string>
+    <string name="tab_diagnostics">诊断</string>
+    <string name="refresh">刷新</string>
+
+    <string name="status_waiting">等待数据</string>
+    <string name="status_unavailable">不可用</string>
+    <string name="status_reconnecting">重连中</string>
+
+    <string name="highest_temperature">最高温度</string>
+    <string name="simulated">模拟</string>
+    <string name="simulated_data">模拟数据</string>
+    <string name="realtime_data">实时数据</string>
+    <string name="memory_pressure">内存压力</string>
+
+    <string name="trend_title">趋势</string>
+    <string name="trend_caption">最近 60 个采样</string>
+    <string name="trend_temperature">温度</string>
+    <string name="trend_memory">内存压力</string>
+    <string name="trend_empty">暂无趋势数据</string>
+
+    <string name="metric_memory">内存</string>
+
+    <string name="events_title">健康事件</string>
+    <string name="events_count">最近事件 · 共 %1$d 条</string>
+    <string name="no_events">暂无健康事件</string>
+    <string name="no_matching_events">当前筛选下没有事件</string>
+    <string name="tap_event_hint">点击事件查看指标、阈值与时间详情；清空后不可恢复。</string>
+    <string name="clear_events">清空</string>
+    <string name="filter_all">全部</string>
+    <string name="filter_warning">警告</string>
+    <string name="filter_critical">严重</string>
+    <string name="filter_recovery">恢复</string>
+    <string name="event_details_title">事件详情</string>
+    <string name="event_details_body">事件 #%1$d\n指标：%2$s\n状态：%3$s → %4$s\n数值：%5$.1f\n阈值：%6$.1f\n时间：%7$d 秒前\n\n%8$s</string>
+    <string name="deep_link_event">通知事件 #%1$d</string>
+
+    <string name="event_age_just_now">刚刚</string>
+    <string name="event_age_seconds">%1$d 秒前</string>
+    <string name="event_age_minutes">%1$d 分钟前</string>
+    <string name="event_age_hours">%1$d 小时前</string>
+
+    <string name="component_status">组件状态</string>
+    <string name="component_caption">vendor HAL → daemon → framework → App</string>
+    <string name="component_hal">HAL</string>
+    <string name="component_daemon">daemon</string>
+    <string name="component_framework">framework</string>
+    <string name="component_app">App</string>
+
+    <string name="tag_normal">正常</string>
+    <string name="tag_simulated">模拟</string>
+    <string name="tag_unavailable">不可用</string>
+    <string name="tag_incompatible">不兼容</string>
+    <string name="tag_newer">较新</string>
+    <string name="tag_reconnecting">重连</string>
+    <string name="tag_stale">缓存</string>
+    <string name="tag_expired">过期</string>
+    <string name="tag_unknown">未知</string>
+    <string name="tag_monitor">监听</string>
+    <string name="tag_polling">轮询</string>
+    <string name="tag_version">v%1$d</string>
+
+    <string name="hal_detail_normal">thermal 数据正常</string>
+    <string name="hal_detail_simulated">未读取到 thermal 节点</string>
+    <string name="hal_detail_unavailable">无 thermal 数据</string>
+    <string name="daemon_detail_unavailable">接口不可用</string>
+    <string name="daemon_detail_too_old">接口版本过低，事件/设置已禁用</string>
+    <string name="daemon_detail_newer">接口 v%1$d 较新，未知能力已忽略</string>
+    <string name="daemon_detail_normal">接口 v%1$d · 能力 0x%2$s · PID %3$d</string>
+    <string name="framework_detail_waiting">等待快照</string>
+    <string name="framework_detail_stale">快照可能过期，显示最近缓存</string>
+    <string name="framework_detail_unknown">快照状态未知</string>
+    <string name="framework_detail_expired">数据过期，等待新采样</string>
+    <string name="framework_detail_normal">快照 %1$d 秒前 · 策略运行正常</string>
+    <string name="app_detail_reconnecting">第 %1$d 次重试 · %2$s</string>
+    <string name="app_detail_error">%1$s</string>
+    <string name="app_detail_normal_push">推送监听 · 成功刷新 %1$d 次</string>
+    <string name="app_detail_normal_poll">轮询 · 成功刷新 %1$d 次</string>
+
+    <string name="runtime_info">运行信息</string>
+    <string name="framework_realtime">framework 实时</string>
+    <string name="apex_version_label">APEX 版本</string>
+    <string name="last_error_label">最后错误</string>
+    <string name="snapshot_age_label">快照年龄</string>
+    <string name="refresh_count_label">刷新</string>
+    <string name="value_loading">查询中…</string>
+    <string name="value_none">无</string>
+    <string name="value_dash">—</string>
+    <string name="stats_line">指标 %1$d · 事件 %2$d · 趋势 %3$d 点 · 成功 %4$d / 失败 %5$d</string>
+
+    <string name="self_test_title">自检</string>
+    <string name="run_self_test">自检</string>
+    <string name="simulate_critical">模拟严重</string>
+    <string name="clear_simulated">清除模拟</string>
+    <string name="self_test_hint">点击“自检”检查数据链路</string>
+    <string name="self_test_running">正在检查…</string>
+    <string name="badge_idle">待运行</string>
+    <string name="badge_running">运行中</string>
+    <string name="badge_pass">PASS</string>
+    <string name="badge_fail">FAIL</string>
+    <string name="badge_done">完成</string>
+    <string name="badge_failed">失败</string>
+
+    <string name="severity_normal">正常</string>
+    <string name="severity_warning">警告</string>
+    <string name="severity_critical">严重</string>
+    <string name="severity_stale">缓存</string>
+    <string name="severity_unknown">未知</string>
+
+    <string name="overall_state">总体状态</string>
+    <string name="source">数据来源：vendor HAL → devicehealthd → framework</string>
+
+    <string name="error_no_permission">无权限访问设备健康数据</string>
+    <string name="error_read_failed">读取失败：%1$s</string>
+    <string name="error_manager_unavailable">DeviceHealthManager 不可用</string>
+</resources>

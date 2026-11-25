@@ -1,0 +1,5 @@
+service devicehealthd /apex/com.android.devicehealth/bin/devicehealthd
+    class main
+    user system
+    group system
+    shutdown critical
