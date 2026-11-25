@@ -93,9 +93,32 @@ Patch 0005 creates the new projects `packages/modules/DeviceHealth`,
 
 ### APEX signing keys
 
-The delivery intentionally excludes the private signing keys
-(`packages/modules/DeviceHealth/apex/com.android.devicehealth.pem` and
-`com.android.devicehealth.pk8`). Generate test keys before building:
+The APEX test key pair is generated in the local AOSP build tree and is intentionally not
+committed to this delivery repository:
+
+- `packages/modules/DeviceHealth/apex/com.android.devicehealth.pem`
+- `packages/modules/DeviceHealth/apex/com.android.devicehealth.pk8`
+
+It is a 4096-bit RSA test key. The matching public certificate and AVB public key are
+committed here:
+
+- `packages/modules/DeviceHealth/apex/com.android.devicehealth.x509.pem`
+- `packages/modules/DeviceHealth/apex/com.android.devicehealth.avbpubkey`
+
+The X.509 certificate SHA-256 fingerprint is:
+
+```
+A9:0F:87:5B:2F:A5:96:25:A7:DC:D1:0B:8A:10:F8:4E:8D:40:36:77:EA:65:86:CC:C7:96:3A:21:83:AB:14:DA
+```
+
+The private key, certificate and AVB public key were verified to match, and the prebuilt
+`artifacts/com.android.devicehealth-v2.apex` is signed with the same key.
+
+> These are test keys only. Private signing keys are never committed to this repository;
+> never use them for production APEX signing.
+
+When applying `patches/0005-devicehealth-module.patch` to a clean AOSP tree, generate the
+key pair before building:
 
 ```bash
 cd packages/modules/DeviceHealth/apex
@@ -106,7 +129,9 @@ avbtool extract_public_key --key com.android.devicehealth.pem \
     --output com.android.devicehealth.avbpubkey
 ```
 
-Alternatively copy the test keys from the original build environment.
+The generated `com.android.devicehealth.x509.pem` and `com.android.devicehealth.avbpubkey`
+must match the committed public files if you want to reuse the prebuilt v2 APEX. If you
+regenerate the key pair, rebuild and re-sign the v2 artifact with the new key.
 
 ## Build
 
