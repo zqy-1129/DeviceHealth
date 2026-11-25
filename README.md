@@ -21,10 +21,15 @@ devicehealth-delivery/
 │   ├── 0004-cuttlefish.patch
 │   └── 0005-devicehealth-module.patch       # daemon/module, app, e2e script
 ├── screenshots/
-│   ├── 01-overview-normal.png
-│   ├── 02-events-critical.png
-│   ├── 03-diagnostics-normal.png
-│   └── 04-diagnostics-degraded.png
+│   ├── 01-overview-light.png
+│   ├── 02-events-light.png
+│   ├── 03-diagnostics-light.png
+│   ├── 04-overview-dark.png
+│   ├── 05-events-dark.png
+│   ├── 06-diagnostics-dark.png
+│   ├── 07-selftest-light.png
+│   ├── 08-selftest-dark.png
+│   └── 09-theme-toggle.mp4
 └── scripts/
     ├── e2e_devicehealth.sh
     ├── fault_matrix.sh
@@ -36,6 +41,15 @@ devicehealth-delivery/
 - AOSP `android-14.0.0_r75`-style tree, `aosp_cf_x86_64_phone-trunk_staging-userdebug`
 - Cuttlefish `vsoc_x86_64`, SELinux enforcing
 - `MANAGE_DEVICE_HEALTH` granted to the platform-signed privileged app
+
+## App UI
+
+The app uses framework-only widgets and resources. The fixed header exposes a one-tap
+"深色 / 浅色" pill that switches between the light "morning" and dark "deep space" themes;
+the pill plays a short press and icon-rotation animation before switching, and the choice is
+persisted per app through `UiModeManager.setApplicationNightMode` and re-applied on launch.
+The overview uses a circular gauge and gradient sparklines, events use severity rails and
+status icons, and diagnostics uses status rings plus a compact information grid.
 
 ## Apply the patches
 
@@ -215,10 +229,15 @@ adb shell pm list packages --apex-only --show-versioncode | grep devicehealth
 
 | File | Content |
 |---|---|
-| `screenshots/01-overview-normal.png` | Overview: normal state, temperature, memory pressure, trends |
-| `screenshots/02-events-critical.png` | Event timeline after a simulated critical transition |
-| `screenshots/03-diagnostics-normal.png` | Diagnostics: HAL/daemon/framework/app status, APEX, self-test |
-| `screenshots/04-diagnostics-degraded.png` | Degraded mode shown in the app |
+| `screenshots/01-overview-light.png` | Light overview: normal state, gauge, memory pressure, trends |
+| `screenshots/02-events-light.png` | Light event timeline: recovery, warning and critical transitions |
+| `screenshots/03-diagnostics-light.png` | Light diagnostics: component status and runtime information |
+| `screenshots/04-overview-dark.png` | Dark overview: normal state |
+| `screenshots/05-events-dark.png` | Dark event timeline |
+| `screenshots/06-diagnostics-dark.png` | Dark diagnostics |
+| `screenshots/07-selftest-light.png` | Light self-test result (PASS) |
+| `screenshots/08-selftest-dark.png` | Dark self-test result (PASS) |
+| `screenshots/09-theme-toggle.mp4` | Theme toggle click animation (light → dark → light) |
 
 ## Known environment issue
 
